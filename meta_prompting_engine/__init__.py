@@ -29,14 +29,30 @@ from .categorical import (
     MonadPrompt,
     Comonad,
     Observation,
-    # CategoricalMetaPromptingEngine,  # TODO: Implement in next phase
+    CategoricalMetaPromptingEngine,
+    CategoricalExecutionResult,
+    create_categorical_engine,
+)
+
+from .monitoring import (
+    QualityMonitor,
+    QualityMetrics,
+    create_quality_monitor,
 )
 
 __all__ = [
+    # Categorical structures
     "Functor",
     "Monad",
     "MonadPrompt",
     "Comonad",
     "Observation",
-    # "CategoricalMetaPromptingEngine",  # TODO: Implement in next phase
+    # Engine
+    "CategoricalMetaPromptingEngine",
+    "CategoricalExecutionResult",
+    "create_categorical_engine",
+    # Monitoring
+    "QualityMonitor",
+    "QualityMetrics",
+    "create_quality_monitor",
 ]
