@@ -1,11 +1,24 @@
 ---
 name: dynamic-prompt-registry
-description: Dynamic prompt registry with Reader monad for runtime prompt lookup and composition. Use when building meta-prompts that reference sub-prompts by name, creating prompt libraries with quality tracking, implementing deferred prompt resolution, or composing well-tested prompt templates dynamically.
+description: "Dynamic prompt registry with unified categorical syntax. Supports @skills:discover(), @skills:compose(A⊗B), Reader monad for runtime lookup, and quality-tracked prompt libraries. Use for meta-prompts referencing sub-prompts, building prompt libraries, implementing deferred resolution, or composing templates dynamically."
 ---
 
 # Dynamic Prompt Registry
 
-A categorical extension for dynamic prompt lookup and composition, enabling meta-prompts to reference well-tested sub-prompts at runtime.
+A categorical extension for dynamic prompt lookup and composition with unified syntax support.
+
+## Unified Syntax Integration
+
+```bash
+# Skill discovery
+/meta-command @skills:discover(domain=API,relevance>0.7) "create testing command"
+
+# Skill composition (tensor product)
+/meta-command @skills:compose(api-testing⊗jest-patterns) "create test suite"
+
+# Explicit skill list
+/meta-command @skills:api-testing,validation "create endpoint command"
+```
 
 **Unified Framework Integration**: This skill implements **Functor F** composition from the categorical framework.
 - See also: `categorical-meta-prompting` skill for full F/M/W integration
@@ -75,19 +88,101 @@ queue = (PromptQueue.empty()
         else_=PromptQueue.from_literal("Done.")
     ))
 
-# Introspect before execution
-print(queue.describe())
-# PromptQueue:
-#   1. Literal(user: 'Analyze the problem:')
-#   2. Lookup('fibonacci')
-#   3. Lookup('validator')
-#   4. Conditional(needs_detail)
-
 # Get all lookups for preloading
 lookups = queue.get_lookups()  # ['fibonacci', 'validator', 'detailed_explanation']
 
 # Execute against registry
 result = queue.interpret(registry, context={"problem": "Find F(10)"})
+```
+
+## Unified Syntax: @skills: Modifier
+
+### @skills:discover() - Dynamic Skill Discovery
+
+```bash
+# Discover skills by domain
+@skills:discover(domain=ALGORITHM)
+
+# Discover by relevance threshold
+@skills:discover(relevance>0.7)
+
+# Combined filters
+@skills:discover(domain=API,relevance>0.8,tags=testing)
+```
+
+**Implementation**:
+```python
+def skills_discover(filters: Dict) -> List[Skill]:
+    """
+    Discover skills matching filter criteria.
+
+    Unified syntax: @skills:discover(domain=X,relevance>Y)
+    """
+    results = []
+    for skill in registry.all():
+        if filters.get("domain") and skill.domain != filters["domain"]:
+            continue
+        if filters.get("relevance") and skill.quality < filters["relevance"]:
+            continue
+        if filters.get("tags"):
+            if not filters["tags"].intersection(skill.tags):
+                continue
+        results.append(skill)
+
+    return sorted(results, key=lambda s: -s.quality)
+```
+
+### @skills:compose() - Tensor Product Composition
+
+```bash
+# Compose two skills (tensor product)
+@skills:compose(api-testing⊗jest-patterns)
+
+# Chain composition (Kleisli)
+@skills:compose(analyze>=>design>=>implement)
+
+# Sequential composition
+@skills:compose(research→design→implement)
+```
+
+**Implementation**:
+```python
+def skills_compose(expr: str) -> CompositeSkill:
+    """
+    Compose skills using categorical operators.
+
+    Operators:
+    - ⊗ (tensor): Combine capabilities, quality = min(q1, q2)
+    - → (sequence): Chain skills, output → input
+    - >=> (Kleisli): Monadic chain with quality gates
+    """
+    if "⊗" in expr:
+        # Tensor product composition
+        parts = expr.split("⊗")
+        skills = [registry.get(p.strip()) for p in parts]
+        return CompositeSkill(
+            capabilities=union(s.capabilities for s in skills),
+            quality=min(s.quality for s in skills),  # Quality degrades
+            components=skills
+        )
+    elif "→" in expr:
+        # Sequential composition
+        parts = expr.split("→")
+        return SequentialSkill([registry.get(p.strip()) for p in parts])
+    elif ">=>" in expr:
+        # Kleisli composition with quality gates
+        parts = expr.split(">=>")
+        return KleisliSkill([registry.get(p.strip()) for p in parts])
+```
+
+### @skills:explicit - Direct Skill List
+
+```bash
+# Explicit skill list
+@skills:api-testing,validation,error-handling
+
+# Use best skill for domain
+@skills:best(domain=ALGORITHM)
 ```
 
 ## Reference Syntax
@@ -98,7 +193,8 @@ result = queue.interpret(registry, context={"problem": "Find F(10)"})
 | `{lookup:name}` | Alias for prompt | `{lookup:sorting}` |
 | `{best:domain}` | Best prompt for domain | `{best:algorithms}` |
 | `{var:name}` | Variable substitution | `{var:problem}` |
-| `{name}` | Legacy variable | `{input}` |
+| `{skill:name}` | Skill reference | `{skill:api-testing}` |
+| `@skills:` | Unified modifier | `@skills:discover(domain=X)` |
 
 ## Usage Patterns
 
@@ -122,87 +218,40 @@ registry.register(
     description="Optimal fibonacci using DP",
     tags={"dp", "recursion", "memoization"}
 )
-
-registry.register(
-    name="binary_search",
-    template="""Find {target} in sorted array {arr}:
-1. Set low=0, high=len-1
-2. While low <= high:
-   - mid = (low + high) // 2
-   - If arr[mid] == target: return mid
-   - If arr[mid] < target: low = mid + 1
-   - Else: high = mid - 1
-3. Return -1 (not found)""",
-    domain=DomainTag.ALGORITHMS,
-    quality=0.93,
-)
 ```
 
-### 2. Build Meta-Prompts with References
+### 2. Build Meta-Prompts with @skills:
 
-```python
-from extensions.dynamic_prompt_registry import ReferenceResolver
+```bash
+# Using @skills:discover()
+/meta-command @skills:discover(domain=API,relevance>0.7) "create API testing"
 
-resolver = ReferenceResolver(registry)
-
-meta_prompt = """
-You are an expert algorithm tutor.
-
-Student question: {var:question}
-
-To solve this, apply the following approach:
-
-{prompt:fibonacci}
-
-Then validate your solution:
-{prompt:validator}
-"""
-
-# Resolve references
-result = resolver.resolve(
-    meta_prompt,
-    variables={"question": "How do I compute F(50)?"}
-)
-
-print(result.resolved)
-# Fully resolved prompt with inlined sub-prompts
-
-print(result.resolved_refs)  # ['fibonacci', 'validator']
+# This auto-discovers: api-testing (0.92), validation (0.88), endpoint-design (0.85)
+# And injects them into the meta-command context
 ```
 
-### 3. Deferred Resolution with PromptQueue
+### 3. Compose Skills with Tensor Product
 
-```python
-from extensions.dynamic_prompt_registry import PromptQueue, literal, lookup, sequence
+```bash
+# Tensor product: combine capabilities with quality degradation
+/meta-command @skills:compose(api-testing⊗jest-patterns⊗validation) "create test suite"
 
-# Build queue (no execution yet)
-algorithm_pipeline = (
-    literal("You are solving an algorithm problem.")
-    >> lookup("problem_analysis")
-    >> lookup("solution_approach")
-    >> lookup("complexity_analysis")
-    >> literal("Provide the final solution.")
-)
-
-# Interpret with different registries
-dev_result = algorithm_pipeline.interpret(dev_registry)
-prod_result = algorithm_pipeline.interpret(prod_registry)
+# Result:
+# - Combined capabilities from all three skills
+# - Quality = min(0.92, 0.88, 0.91) = 0.88
 ```
 
 ### 4. Quality-Based Selection
 
 ```python
-# Get best prompt for domain
+# Get best prompt for domain (unified syntax)
 best_algo = registry.get_best_for_domain(DomainTag.ALGORITHMS)
 
-# Find prompts meeting quality threshold
+# Find prompts meeting @quality: threshold
 verified = registry.find_by_quality(min_quality=0.90)
 
-# Use in meta-prompt
-meta = """
-Apply the best algorithm approach:
-{best:algorithms}
-"""
+# Use in command
+# /meta @skills:best(domain=ALGORITHM) "optimize sorting"
 ```
 
 ### 5. Dependency Tracking
@@ -218,32 +267,29 @@ if not is_valid:
 
 # Get execution order
 order = registry.topological_order("complex_solver")
-# Returns prompts in dependency order
 ```
 
-## Composition Operators
+## Composition Operators (Unified)
+
+| Operator | Unicode | Quality Rule | Use Case |
+|----------|---------|--------------|----------|
+| `⊗` | U+2297 | `min(q1, q2)` | Combine capabilities |
+| `→` | U+2192 | `min(q1, q2)` | Sequential pipeline |
+| `>=>` | - | `max(q_iterations)` | Quality-gated chain |
+| `\|\|` | - | `mean(q1, q2, ...)` | Parallel execution |
 
 ```python
-# Sequential (>>)
+# Sequential (→): Output of A → Input of B
 queue1 >> queue2  # queue1 then queue2
 
-# Concatenation (+)
-queue1 + queue2   # Append steps
+# Tensor (⊗): Combine skills
+skill_a ⊗ skill_b   # quality = min(qa, qb)
 
-# Branching
-queue.branch(
-    predicate=lambda ctx: ctx["complexity"] > 0.7,
-    then=lookup("advanced_solver"),
-    else_=lookup("simple_solver")
-)
+# Kleisli (>=>): Monadic with refinement
+skill_a >=> skill_b  # quality improves iteratively
 
-# Parallel
-queue.parallel(
-    lookup("approach_a"),
-    lookup("approach_b"),
-    lookup("approach_c"),
-    combiner=select_best
-)
+# Parallel (||): Concurrent execution
+skill_a || skill_b || skill_c  # quality = mean(qa, qb, qc)
 ```
 
 ## Integration with Categorical Engine
@@ -258,18 +304,35 @@ registry.register("analyze", ..., quality=0.90)
 registry.register("solve", ..., quality=0.92)
 registry.register("validate", ..., quality=0.88)
 
-# Build meta-prompt with references
+# Build meta-prompt with @skills: modifier
+# /meta-command @skills:compose(analyze→solve→validate) "process data"
+
+# Resolves to:
 meta_template = """
 {prompt:analyze}
 {prompt:solve}
 {prompt:validate}
 """
 
-# Resolve before execution
-resolved = resolve_references(meta_template, registry)
-
 # Execute with categorical engine
 result = engine.execute(Task(description=resolved))
+```
+
+## Unified Checkpoint Format
+
+```yaml
+SKILL_RESOLUTION_CHECKPOINT:
+  modifier: "@skills:compose(api-testing⊗validation)"
+  resolved_skills:
+    - name: api-testing
+      quality: 0.92
+      domain: API
+    - name: validation
+      quality: 0.88
+      domain: TESTING
+  composition_type: tensor
+  composite_quality: 0.88  # min(0.92, 0.88)
+  status: RESOLVED
 ```
 
 ## Categorical Laws
@@ -277,35 +340,60 @@ result = engine.execute(Task(description=resolved))
 ### Reader Monad Laws
 
 ```python
-from extensions.dynamic_prompt_registry.reader import verify_reader_laws
+# Left identity
+Reader.pure(a).flat_map(f) == f(a)
 
-laws = verify_reader_laws()
-# {'left_identity': True, 'right_identity': True, 'associativity': True}
+# Right identity
+m.flat_map(Reader.pure) == m
+
+# Associativity
+m.flat_map(f).flat_map(g) == m.flat_map(lambda x: f(x).flat_map(g))
 ```
 
-### Quality Enrichment
+### Quality Enrichment Laws
 
-The registry provides [0,1]-enriched structure:
-- Each prompt has a quality score in [0, 1]
-- Composition degrades quality: `min(q1, q2)`
-- Domain thresholds ensure minimum quality
+```python
+# Tensor product quality degradation
+quality(A ⊗ B) == min(quality(A), quality(B))
 
-## File Structure
+# Sequential quality
+quality(A → B) <= min(quality(A), quality(B))
 
+# Parallel aggregation
+quality(A || B) == mean(quality(A), quality(B))
 ```
-extensions/dynamic-prompt-registry/
-├── __init__.py       # Module exports
-├── registry.py       # PromptRegistry, DomainTag, QualityMetrics
-├── reader.py         # Reader monad implementation
-├── queue.py          # PromptQueue (Free Applicative)
-└── resolver.py       # Reference resolution ({prompt:name})
+
+## Usage Examples
+
+```bash
+# Discover skills by domain
+/meta-command @skills:discover(domain=API) "create endpoint"
+
+# Compose with tensor product
+/meta-command @skills:compose(testing⊗validation) "create test suite"
+
+# Sequential composition
+/meta-command @skills:compose(research→design→implement) "build feature"
+
+# Kleisli composition with quality gates
+/meta-command @skills:compose(analyze>=>refine>=>validate) @quality:0.85 "optimize code"
+
+# Use best skill for domain
+/meta-command @skills:best(domain=ALGORITHM) "implement sorting"
+
+# Explicit skill list
+/meta-command @skills:api-testing,validation "create API tests"
+
+# Combined with other modifiers
+/meta-command @mode:iterative @quality:0.85 @skills:discover(relevance>0.8) "build system"
 ```
 
 ## Key Benefits
 
 1. **Modularity**: Build complex prompts from tested components
-2. **Reusability**: Register once, use everywhere
+2. **Reusability**: Register once, use everywhere via @skills:
 3. **Quality Tracking**: Know which prompts perform well
 4. **Deferred Resolution**: Build pipelines, execute later
 5. **Type Safety**: Domain tags and type annotations
 6. **Composability**: Categorical structure enables clean composition
+7. **Unified Syntax**: Consistent @skills: modifier across all commands
