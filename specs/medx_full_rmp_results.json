@@ -1,0 +1,212 @@
+{
+  "medx-pro": {
+    "initial": 0.8983333333333332,
+    "final": 0.9798333333333333,
+    "improvement": 0.08150000000000013,
+    "iterations": [
+      {
+        "iteration": 1,
+        "before": 0.8983333333333332,
+        "after": 0.9163333333333332,
+        "delta": 0.018000000000000016,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.7666666666666667,
+        "targeted_after": 0.8716666666666667
+      },
+      {
+        "iteration": 2,
+        "before": 0.9163333333333332,
+        "after": 0.9360333333333334,
+        "delta": 0.019700000000000162,
+        "targeted": "actionability",
+        "targeted_before": 0.7883333333333333,
+        "targeted_after": 0.8783333333333333
+      },
+      {
+        "iteration": 3,
+        "before": 0.9360333333333334,
+        "after": 0.9495333333333333,
+        "delta": 0.013499999999999956,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.8746666666666667,
+        "targeted_after": 0.9496666666666667
+      },
+      {
+        "iteration": 4,
+        "before": 0.9495333333333333,
+        "after": 0.9577333333333333,
+        "delta": 0.008199999999999985,
+        "targeted": "integration_coherence",
+        "targeted_before": 0.8816666666666666,
+        "targeted_after": 0.9416666666666667
+      },
+      {
+        "iteration": 5,
+        "before": 0.9577333333333333,
+        "after": 0.9684333333333333,
+        "delta": 0.010699999999999932,
+        "targeted": "actionability",
+        "targeted_before": 0.8883333333333333,
+        "targeted_after": 0.9333333333333333
+      },
+      {
+        "iteration": 6,
+        "before": 0.9684333333333333,
+        "after": 0.9761333333333333,
+        "delta": 0.00770000000000004,
+        "targeted": "actionability",
+        "targeted_before": 0.9333333333333333,
+        "targeted_after": 0.9633333333333334
+      },
+      {
+        "iteration": 7,
+        "before": 0.9761333333333333,
+        "after": 0.9798333333333333,
+        "delta": 0.0037000000000000366,
+        "targeted": "integration_coherence",
+        "targeted_before": 0.9516666666666667,
+        "targeted_after": 0.9666666666666667
+      }
+    ]
+  },
+  "medx-connect": {
+    "initial": 0.8741666666666668,
+    "final": 0.9596666666666668,
+    "improvement": 0.08550000000000002,
+    "iterations": [
+      {
+        "iteration": 1,
+        "before": 0.8741666666666668,
+        "after": 0.8978666666666667,
+        "delta": 0.023699999999999943,
+        "targeted": "actionability",
+        "targeted_before": 0.7833333333333333,
+        "targeted_after": 0.8883333333333333
+      },
+      {
+        "iteration": 2,
+        "before": 0.8978666666666667,
+        "after": 0.9146166666666667,
+        "delta": 0.016750000000000043,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.7863333333333336,
+        "targeted_after": 0.8763333333333335
+      },
+      {
+        "iteration": 3,
+        "before": 0.9146166666666667,
+        "after": 0.9253166666666668,
+        "delta": 0.010700000000000043,
+        "targeted": "integration_coherence",
+        "targeted_before": 0.8099999999999998,
+        "targeted_after": 0.8849999999999998
+      },
+      {
+        "iteration": 4,
+        "before": 0.9253166666666668,
+        "after": 0.9375666666666667,
+        "delta": 0.012249999999999872,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.8793333333333335,
+        "targeted_after": 0.9393333333333336
+      },
+      {
+        "iteration": 5,
+        "before": 0.9375666666666667,
+        "after": 0.9452666666666668,
+        "delta": 0.007700000000000151,
+        "targeted": "integration_coherence",
+        "targeted_before": 0.8899999999999998,
+        "targeted_after": 0.9349999999999998
+      },
+      {
+        "iteration": 6,
+        "before": 0.9452666666666668,
+        "after": 0.9539666666666667,
+        "delta": 0.00869999999999993,
+        "targeted": "actionability",
+        "targeted_before": 0.9083333333333333,
+        "targeted_after": 0.9383333333333334
+      },
+      {
+        "iteration": 7,
+        "before": 0.9539666666666667,
+        "after": 0.9596666666666668,
+        "delta": 0.005700000000000038,
+        "targeted": "healthcare_compliance",
+        "targeted_before": 0.9300000000000003,
+        "targeted_after": 0.9450000000000003
+      }
+    ]
+  },
+  "medx-consumer": {
+    "initial": 0.9033333333333334,
+    "final": 0.9915833333333335,
+    "improvement": 0.08825000000000005,
+    "iterations": [
+      {
+        "iteration": 1,
+        "before": 0.9033333333333334,
+        "after": 0.9223333333333334,
+        "delta": 0.019000000000000017,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.8000000000000002,
+        "targeted_after": 0.9050000000000001
+      },
+      {
+        "iteration": 2,
+        "before": 0.9223333333333334,
+        "after": 0.9430333333333334,
+        "delta": 0.02069999999999994,
+        "targeted": "actionability",
+        "targeted_before": 0.8216666666666668,
+        "targeted_after": 0.9116666666666667
+      },
+      {
+        "iteration": 3,
+        "before": 0.9430333333333334,
+        "after": 0.9575333333333335,
+        "delta": 0.014500000000000068,
+        "targeted": "categorical_rigor",
+        "targeted_before": 0.9080000000000001,
+        "targeted_after": 0.9830000000000001
+      },
+      {
+        "iteration": 4,
+        "before": 0.9575333333333335,
+        "after": 0.9667333333333336,
+        "delta": 0.009200000000000097,
+        "targeted": "integration_coherence",
+        "targeted_before": 0.9149999999999999,
+        "targeted_after": 0.9749999999999999
+      },
+      {
+        "iteration": 5,
+        "before": 0.9667333333333336,
+        "after": 0.9784333333333334,
+        "delta": 0.011699999999999822,
+        "targeted": "actionability",
+        "targeted_before": 0.9216666666666667,
+        "targeted_after": 0.9666666666666668
+      },
+      {
+        "iteration": 6,
+        "before": 0.9784333333333334,
+        "after": 0.9858833333333334,
+        "delta": 0.007450000000000068,
+        "targeted": "clarity",
+        "targeted_before": 0.9583333333333333,
+        "targeted_after": 0.9883333333333333
+      },
+      {
+        "iteration": 7,
+        "before": 0.9858833333333334,
+        "after": 0.9915833333333335,
+        "delta": 0.005700000000000038,
+        "targeted": "actionability",
+        "targeted_before": 0.9716666666666668,
+        "targeted_after": 0.9866666666666668
+      }
+    ]
+  }
+}
