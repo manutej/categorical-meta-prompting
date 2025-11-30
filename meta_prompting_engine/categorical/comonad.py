@@ -43,8 +43,9 @@ from datetime import datetime
 
 from .types import Prompt
 
-# Type variable for comonad content
+# Type variables for comonad content
 A = TypeVar('A')
+B = TypeVar('B')
 
 
 @dataclass

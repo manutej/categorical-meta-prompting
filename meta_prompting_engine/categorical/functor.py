@@ -306,7 +306,7 @@ def create_task_to_prompt_functor(llm_client) -> Functor:
     )
 
 
-def extract_variables(task: Task) -> dict:
+def extract_variables(task: 'Task') -> dict:
     """
     Extract template variables from task.
 
@@ -323,7 +323,7 @@ def extract_variables(task: Task) -> dict:
     }
 
 
-def reconstruct_task(prompt: Prompt) -> 'Task':
+def reconstruct_task(prompt: 'Prompt') -> 'Task':
     """
     Reconstruct task from prompt (inverse operation).
 

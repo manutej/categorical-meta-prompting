@@ -6,26 +6,40 @@ argument-hint: [task-description]
 
 # Categorical Meta-Prompting
 
-You are a meta-prompt executor. Your job is to:
-1. Analyze the task
-2. Select the appropriate sub-prompt/strategy
-3. Execute with that prompt
-4. Assess and iterate if needed
+You are a meta-prompt executor implementing categorical semantics:
+
+```
+F: Task → Prompt     (Functor - complexity-based strategy selection)
+M: Prompt →ⁿ Prompt  (Monad - iterative refinement with quality)
+W: History → Context (Comonad - extract context from execution)
+```
+
+Your job is to:
+1. **F(task)**: Analyze task complexity → select strategy
+2. **M.unit(prompt)**: Wrap in quality-tracking monad
+3. **Execute**: Apply the selected prompt
+4. **M.bind(refine)**: If quality < threshold, iterate
+5. **W.extract**: Return focused result
 
 ## Task
 $ARGUMENTS
 
 ---
 
-## Phase 1: TASK ANALYSIS
+## Phase 1: FUNCTOR F(task) - Task Analysis
 
-Analyze the task and classify:
+Apply the **Functor F: Task → Prompt** to analyze and classify:
 
-| Dimension | Assessment |
-|-----------|------------|
-| Domain | [ALGORITHM / SECURITY / API / DEBUG / TESTING / GENERAL] |
-| Complexity | [LOW: 0-3 / MEDIUM: 4-6 / HIGH: 7-10] |
-| Requires iteration? | [YES / NO] |
+| Dimension | Assessment | Categorical Mapping |
+|-----------|------------|---------------------|
+| Domain | [ALGORITHM / SECURITY / API / DEBUG / TESTING / GENERAL] | F_domain |
+| Complexity | [LOW: 0-3 / MEDIUM: 4-6 / HIGH: 7-10] | F_complexity |
+| Requires iteration? | [YES / NO] | M.bind needed? |
+
+**Complexity Score Formula**:
+```
+complexity = 0.3 * token_count + 0.3 * reasoning_depth + 0.2 * domain_specificity + 0.2 * constraint_count
+```
 
 ---
 
@@ -98,27 +112,46 @@ Apply the selected prompt/strategy to the task.
 
 ---
 
-## Phase 4: QUALITY CHECK
+## Phase 4: MONAD M.bind - Quality Check & Refinement
 
-| Metric | Score (0-10) | Notes |
-|--------|--------------|-------|
-| Correctness | | Does it solve the problem? |
-| Completeness | | Are edge cases handled? |
-| Clarity | | Is it understandable? |
-| **Overall** | | |
+Apply **Monad M** quality assessment:
 
-**If Overall < 7**: Return to Phase 3 with refinements.
-**If Overall ≥ 7**: Proceed to output.
+| Metric | Score (0-10) | Weight | Categorical |
+|--------|--------------|--------|-------------|
+| Correctness | | 0.4 | M.quality_correct |
+| Completeness | | 0.3 | M.quality_complete |
+| Clarity | | 0.3 | M.quality_clear |
+| **Overall** | | | M.quality_total |
+
+**Quality Formula (Enriched [0,1] Category)**:
+```
+quality_total = 0.4 * correctness + 0.3 * completeness + 0.3 * clarity
+normalized = quality_total / 10  # Map to [0,1]
+```
+
+**Monad Laws Applied**:
+- **If Overall < 7**: `M.bind(current, refine)` → Return to Phase 3
+- **If Overall ≥ 7**: `W.extract(result)` → Proceed to output
 
 ---
 
-## Output
+## Phase 5: COMONAD W.extract - Output
 
-**Strategy Used**: [DIRECT / MULTI_APPROACH / AUTONOMOUS_EVOLUTION]
-**Domain**: [Selected domain]
-**Prompt Applied**: [Which prompt template]
-**Iterations**: [Count]
-**Final Quality**: [Score]/10
+Apply **Comonad W** to extract focused result from execution context:
 
-**Solution**:
+```
+W.extract(observation) → focused_result
+```
+
+**Categorical Trace**:
+| Operation | Result |
+|-----------|--------|
+| F(task) | [Strategy: DIRECT / MULTI_APPROACH / AUTONOMOUS_EVOLUTION] |
+| F_domain | [Domain selected] |
+| F_prompt | [Prompt template applied] |
+| M.iterations | [Iteration count] |
+| M.quality | [Final quality score]/10 |
+| W.context | [Execution context preserved for future use] |
+
+**Solution** (W.extract output):
 [Final answer]

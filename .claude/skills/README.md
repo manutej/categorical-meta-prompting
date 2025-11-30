@@ -1,16 +1,18 @@
 # Categorical Meta-Prompting Skills
 
-18 Claude Code skills implementing the categorical meta-prompting framework.
+20 Claude Code skills implementing the categorical meta-prompting framework.
 
 ## Skills Overview
 
 | Skill | Size | Description |
 |-------|------|-------------|
 | **arxiv-categorical-ai** | 11KB | Systematic analysis patterns for categorical AI papers |
+| **categorical-meta-prompting** | 12KB | **Core framework: F (Functor), M (Monad), W (Comonad), [0,1]-enriched** |
 | **categorical-property-testing** | 10KB | Property-based testing for functor/monad laws with fp-ts |
 | **cc2-research-framework** | 14KB | CC2.0 seven-function research workflow |
 | **discopy-nlp** | 2KB | DisCoPy categorical quantum NLP string diagrams |
 | **dspy-categorical** | 10KB | DSPy compositional prompt optimization |
+| **dynamic-prompt-registry** | 9KB | Reader monad for runtime prompt lookup and composition |
 | **effect-ts-ai** | 10KB | @effect/ai integration patterns |
 | **guidance-grammars** | 7KB | Grammar-constrained generation |
 | **hasktorch-typed** | 7KB | Type-safe tensor operations in Haskell |
@@ -37,15 +39,27 @@ Skill: "langgraph-orchestration"
 
 ## Framework Alignment
 
-These skills support the categorical meta-prompting workflow:
+These skills implement the **Unified Categorical Framework**:
 
-1. **OBSERVE** - Use arxiv-categorical-ai for paper analysis
-2. **REASON** - Apply quality-enriched-prompting for assessment
-3. **CREATE** - Use prompt-dsl for compositional prompts
-4. **ORCHESTRATE** - Deploy langgraph-orchestration for multi-agent
-5. **LEARN** - Extract patterns with polynomial-functors
-6. **VERIFY** - Validate with categorical-property-testing
-7. **DEPLOY** - Integrate via mcp-categorical
+### Categorical Layer (F, M, W, [0,1])
+- **Functor F**: `categorical-meta-prompting`, `dynamic-prompt-registry`
+- **Monad M**: `recursive-meta-prompting`, `dspy-categorical`
+- **Comonad W**: `cc2-research-framework` (OBSERVE function)
+- **[0,1]-Enriched**: `quality-enriched-prompting`
+
+### Workflow Mapping
+1. **F(task)** - Use `dynamic-prompt-registry` for task→prompt mapping
+2. **M.unit** - Initialize with `prompt-dsl` for compositional prompts
+3. **M.bind(refine)** - Apply `recursive-meta-prompting` for iteration
+4. **W.extract** - Deploy `langgraph-orchestration` for execution
+5. **Verify Laws** - Validate with `categorical-property-testing`
+
+### Verified Laws (15/15 Tests Pass)
+All categorical laws verified via property-based testing:
+- Functor identity & composition
+- Monad left/right identity & associativity
+- Comonad counit laws & coassociativity
+- [0,1]-enriched tensor associativity & unit laws
 
 ## Source
 

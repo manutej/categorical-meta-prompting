@@ -7,6 +7,11 @@ description: Dynamic prompt registry with Reader monad for runtime prompt lookup
 
 A categorical extension for dynamic prompt lookup and composition, enabling meta-prompts to reference well-tested sub-prompts at runtime.
 
+**Unified Framework Integration**: This skill implements **Functor F** composition from the categorical framework.
+- See also: `categorical-meta-prompting` skill for full F/M/W integration
+- See also: `/route` command for functor-based task routing
+- Quality tracking: [0,1]-enriched category with tensor product for composition
+
 ## Core Concept
 
 ```

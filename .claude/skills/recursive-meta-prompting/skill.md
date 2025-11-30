@@ -7,6 +7,11 @@ description: "Recursive Meta-Prompting (RMP) implementation patterns with monadi
 
 Implementation patterns for recursive prompt improvement with categorical foundations.
 
+**Unified Framework Integration**: This skill implements **Monad M** from the categorical framework.
+- See also: `categorical-meta-prompting` skill for full F/M/W integration
+- See also: `/rmp` command for direct CLI usage
+- Laws verified: 15/15 tests pass (monad left/right identity, associativity)
+
 ## Core Concept
 
 Recursive Meta-Prompting (RMP) treats prompt improvement as a fixed-point computation:

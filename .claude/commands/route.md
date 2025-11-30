@@ -6,63 +6,88 @@ argument-hint: [task-description]
 
 # Dynamic Prompt Router
 
-This meta-prompt analyzes your task and routes to the appropriate specialized prompt.
+This meta-prompt implements **Functor F: Task → Prompt** to route tasks to specialized prompts.
+
+```
+F_route: Task → Domain → Prompt
+       = analyze_task ∘ select_domain ∘ generate_prompt
+```
+
+**Functor Laws Preserved**:
+- Identity: `F(id_task) = id_prompt` (trivial tasks route to direct execution)
+- Composition: `F(g ∘ f) = F(g) ∘ F(f)` (composed tasks route to pipeline)
 
 ## Task
 $ARGUMENTS
 
 ---
 
-## Step 1: Analyze & Route
+## Step 1: Functor F_analyze - Domain Classification
 
-Based on the task, I will select and invoke the appropriate specialized command:
+Apply **F_analyze: Task → Domain**:
 
-| If task involves... | Route to | Why |
-|---------------------|----------|-----|
-| Fixing bugs, errors, crashes | → `/debug` | Systematic debugging protocol |
-| Reviewing code quality | → `/review` | Domain-aware code review |
-| Complex multi-step work | → `/compose analyze plan implement test` | Pipeline composition |
-| Iterative refinement needed | → `/rmp` | Recursive meta-prompting loop |
-| Simple direct request | → Direct execution | No routing overhead |
+| Pattern Detected | Domain | Route to | Categorical Justification |
+|------------------|--------|----------|---------------------------|
+| Bug, error, crash, fix | DEBUG | → `/debug` | F_debug preserves error structure |
+| Review, quality, check | REVIEW | → `/review` | F_review preserves code structure |
+| Build, implement, create | BUILD | → `/compose` | F_build via pipeline composition |
+| Improve, refine, optimize | REFINE | → `/rmp` | M.bind for iterative improvement |
+| Test, verify, validate | TEST | → `/meta-test` | Property verification |
+| Simple, direct | SIMPLE | → Direct | F(id) = id |
 
 ---
 
-## Step 2: Dynamic Template Formation
+## Step 2: Functor F_template - Dynamic Template Formation
 
-For this specific task, I'm constructing an intermediary prompt:
+Apply **F_template: Domain → Prompt** to construct the intermediary prompt:
 
 ```
-Task Type: [detected type]
-Complexity: [low/medium/high]
-Domain: [detected domain]
+F_template(domain) = {context} + {instructions} + {task} + {format} + {quality}
+```
 
-Constructed Template:
+| Component | Categorical Role | Value |
+|-----------|------------------|-------|
+| `{context}` | F.context | Role and capabilities for domain |
+| `{instructions}` | F.morphism | Domain-specific transformation |
+| `{task}` | F.object | "$ARGUMENTS" |
+| `{format}` | F.codomain | Expected output structure |
+| `{quality}` | M.quality | Assessment criteria |
+
+**Composed Template** (F ∘ G):
+```
 ┌────────────────────────────────────────┐
-│ {system_context}                       │
-│ {domain_specific_instructions}         │
-│ {task_description}                     │
-│ {output_format}                        │
-│ {quality_criteria}                     │
+│ {context}: [Expert/Teacher/Debugger]   │
+│ {instructions}: [From routed /command] │
+│ {task}: "$ARGUMENTS"                   │
+│ {format}: [Code/Prose/Structured]      │
+│ {quality}: [Correctness/Completeness]  │
 └────────────────────────────────────────┘
 ```
 
-Where:
-- `{system_context}` = Role and capabilities for this domain
-- `{domain_specific_instructions}` = Pulled from appropriate /command
-- `{task_description}` = Your original task: "$ARGUMENTS"
-- `{output_format}` = Expected structure of response
-- `{quality_criteria}` = How to assess the result
+---
+
+## Step 3: Execute via Composition
+
+Execute the routed command using categorical composition:
+
+```
+result = (F_route ∘ F_template ∘ Execute)(task)
+```
+
+[Now executing the selected command]
 
 ---
 
-## Step 3: Execute Routed Command
+## Step 4: Comonad W.extract - Result
 
-[Now executing the selected command with the constructed template]
+Apply **W.extract** to focus on the essential result:
 
----
+| Trace | Value |
+|-------|-------|
+| F_route.domain | [Domain selected] |
+| F_route.command | [Command routed to] |
+| F_template.components | [Template summary] |
+| Execute.quality | [Quality score if applicable] |
 
-## Step 4: Result
-
-**Routing Decision**: [which command was selected]
-**Template Used**: [constructed template summary]
-**Output**: [result from the routed command]
+**Output** (W.extract):
+[Result from the routed command]

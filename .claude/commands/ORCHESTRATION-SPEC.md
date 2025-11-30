@@ -7,6 +7,12 @@ description: Orchestration specification for meta-commands - defines execution m
 This document defines the Domain-Specific Language (DSL) for orchestrating meta-commands.
 Meta-commands are prompts that call other prompts, enabling sophisticated workflows.
 
+**Categorical Foundation**: This DSL implements category theory constructs:
+- **Functor F**: Task → Prompt (structure-preserving transformation)
+- **Monad M**: Iterative refinement with quality tracking
+- **Comonad W**: Context extraction from execution history
+- **[0,1]-Enriched**: Quality degradation tracking
+
 ---
 
 ## Command Hierarchy
@@ -92,12 +98,53 @@ Commands can specify WHEN and HOW to execute referenced commands/skills:
 
 ---
 
+## Categorical Operators
+
+The DSL implements four categorical operators with verified laws:
+
+### Sequence (→) - Kleisli Composition
+```
+A → B → C
+```
+**Semantics**: Sequential execution. Output of A becomes input of B.
+**Category**: Morphism composition in Kleisli category
+**Quality**: `quality(A → B) = min(quality(A), quality(B))`
+
+### Parallel (||) - Tensor Product
+```
+A || B || C
+```
+**Semantics**: Execute all simultaneously, aggregate results.
+**Category**: Monoidal tensor product ⊗
+**Quality**: `quality(A || B) = mean(quality(A), quality(B))`
+
+### Tensor (⊗) - Resource Combination
+```
+A ⊗ B
+```
+**Semantics**: Combine resources/skills with quality degradation.
+**Category**: [0,1]-enriched tensor product
+**Quality**: `quality(A ⊗ B) ≤ min(quality(A), quality(B))`
+
+### Kleisli (>=>) - Monadic Composition
+```
+A >=> B >=> C
+```
+**Semantics**: Composition with iterative refinement.
+**Category**: Kleisli arrow composition
+**Quality**: Improves monotonically with iterations
+
+---
+
 ## Symbols Reference
 
 | Symbol | Meaning | Usage |
 |--------|---------|-------|
 | `@` | Orchestration directive | `@run:now`, `@parallel[]` |
-| `→` | Command invocation | `→ /debug ${error}` |
+| `→` | Sequence composition | `A → B → C` |
+| `\|\|` | Parallel composition | `A \|\| B \|\| C` |
+| `⊗` | Tensor product | `A ⊗ B` |
+| `>=>` | Kleisli composition | `A >=> B >=> C` |
 | `⚡` | Skill invocation | `⚡ Skill: "name"` |
 | `◆` | Quality gate | `◆ tests:pass` |
 | `${}` | Variable reference | `${previous.output}` |
@@ -121,15 +168,24 @@ Reference other commands inline:
 
 Reference skills when specialized knowledge needed:
 ```
-⚡ Skill: "recursive-meta-prompting"     Invoke RMP skill
+⚡ Skill: "categorical-meta-prompting"    Invoke categorical framework
+⚡ Skill: "recursive-meta-prompting"      Invoke RMP skill
 ⚡ Skill: "categorical-property-testing"  Invoke testing skill
 ⚡ Skill: "security-analysis"             Invoke security skill
 ```
 
 **Available Skills:**
+- `categorical-meta-prompting` - Full categorical framework (F, M, W, [0,1])
 - `categorical-property-testing` - Type-safe property verification
 - `security-analysis` - Security vulnerability analysis
 - `recursive-meta-prompting` - Iterative refinement loops
+
+**Categorical Integration:**
+The `categorical-meta-prompting` skill provides:
+- **Functor F**: `analyze_complexity(task) → prompt_strategy`
+- **Monad M**: `bind(prompt, improve) → refined_prompt` with quality
+- **Comonad W**: `extract(observation) → focused_result`
+- **Quality**: Track degradation via `quality(A ⊗ B) ≤ min(A, B)`
 
 ---
 
