@@ -1,79 +1,132 @@
-# Categorical Meta-Prompting Slash Commands
+# Meta-Prompting Slash Commands
 
-## Available Commands
+**Core insight**: Slash commands ARE prompts. Commands calling commands = prompts calling prompts.
 
-| Command | Purpose | Status |
-|---------|---------|--------|
-| `/meta [task]` | Apply meta-prompting with auto-strategy selection | ✅ Works |
-| `/review [file/focus]` | Domain-aware code review | ✅ Works |
-| `/debug [error/symptom]` | Systematic debugging protocol | ✅ Works |
-| `/rmp [task] [threshold]` | Recursive meta-prompting loop | ✅ Works |
-| `/compose [steps...]` | Compose prompt pipeline | ⚠️ Conceptual |
-| `/select-prompt [problem]` | Select from registry | ⚠️ Requires setup |
-| `/list-prompts [domain]` | List registry contents | ⚠️ Requires setup |
+## Architecture
 
-## Honest Assessment
+```
+┌─────────────────────────────────────────────────────────────┐
+│  META-PROMPT LAYER (prompts that call other prompts)        │
+│                                                             │
+│  /route     → Analyze task, route to appropriate command    │
+│  /chain     → Execute: /cmd1 → /cmd2 → /cmd3                │
+│  /meta      → Strategy selection + domain routing           │
+│  /build-prompt → Assemble template from components          │
+│  /template  → Build prompt step-by-step, visible states     │
+└─────────────────────────────────────────────────────────────┘
+                          ↓ calls
+┌─────────────────────────────────────────────────────────────┐
+│  OBJECT-PROMPT LAYER (prompts that do work)                 │
+│                                                             │
+│  /debug     → Reproduce → Isolate → Hypothesize → Fix       │
+│  /review    → Classify domain → Apply focused review        │
+│  /compose   → {prompt:analyze} → {prompt:plan} → ...        │
+│  /rmp       → Execute → Assess → Refine → Repeat            │
+└─────────────────────────────────────────────────────────────┘
+                          ↓ uses
+┌─────────────────────────────────────────────────────────────┐
+│  TEMPLATE COMPONENTS (embedded, dynamically selected)       │
+│                                                             │
+│  {context:expert}  {context:teacher}  {context:debugger}    │
+│  {mode:direct}     {mode:cot}         {mode:iterative}      │
+│  {prompt:analyze}  {prompt:debug}     {prompt:review}       │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### What Works Now
+## Commands
 
-1. **`/meta`** - Strategy selection (DIRECT/MULTI_APPROACH/AUTONOMOUS_EVOLUTION) based on task complexity. This is pure prompt engineering, no code required.
+### Meta-Level Commands
 
-2. **`/review`** - Domain classification (algorithm, security, API, etc.) with focused review. Works because Claude can read code and apply patterns.
+| Command | What It Does |
+|---------|-------------|
+| `/route [task]` | Analyze task → Route to /debug, /review, /compose, etc. |
+| `/chain [/cmd1 then /cmd2] [input]` | Chain commands, output becomes next input |
+| `/meta [task]` | Full meta-prompting: analyze → select strategy → execute → assess |
+| `/build-prompt [goal]` | Assemble {context} + {mode} + {format} → execute |
+| `/template [goal]` | Build template incrementally with visible intermediate states |
 
-3. **`/debug`** - Systematic REPRODUCE→ISOLATE→HYPOTHESIZE→TEST→FIX protocol. This is a structured prompt that guides Claude's debugging.
+### Object-Level Commands
 
-4. **`/rmp`** - Recursive improvement loop with quality tracking. Works because it's a prompting pattern, not code execution.
+| Command | Template Pattern |
+|---------|-----------------|
+| `/debug [error]` | Reproduce → Isolate → Hypothesize → Test → Fix |
+| `/review [file]` | Detect domain → Apply focused review criteria |
+| `/compose [steps]` | Execute: analyze → plan → implement → test |
+| `/rmp [task] [quality]` | Loop: Execute → Assess → If quality < threshold: Refine |
 
-### What Requires Setup
+### Utility Commands
 
-The registry integration commands (`/select-prompt`, `/list-prompts`) require:
+| Command | Purpose |
+|---------|---------|
+| `/list-prompts` | List prompts from registry (uses Python CLI) |
+| `/select-prompt [problem]` | Select best prompt for problem |
 
-1. Python 3.x installed
-2. The extensions package importable
+## Dynamic Template Formation
 
-**Current limitation:** The `registry_cli.py` has relative imports that require proper package installation. The fallback mode shows static templates.
+Templates are constructed at runtime from components:
 
-### What This Demonstrates
+```
+/build-prompt "implement rate limiter"
 
-1. **Slash commands CAN encode complex meta-prompting strategies** as structured prompts
-2. **Domain-aware selection** works through Claude's classification, not code execution
-3. **The gap** between static commands and dynamic registry is real - needs proper package setup
+Detected: Complex task, needs expert context, code output
+Assembled: {context:expert} + {mode:cot} + {format:code}
+Result: Constructed template executed with goal
+```
 
-### Limitations I'm Being Honest About
+## Prompt Chaining
 
-1. **Registry requires installation** - The Python bridge doesn't work out of the box due to import structure
-2. **Composition is conceptual** - `/compose` describes the idea but doesn't execute real PromptQueue
-3. **Quality assessments are self-reported** - No neutral evaluator, so scores should be skeptical
-4. **Slash commands are text templates** - They can't do runtime computation
+Chain commands to create pipelines:
 
-### What Would Make This Actually Work
+```
+/chain "/debug then /review" "TypeError in auth.py"
 
-1. Fix the import structure so `registry_cli.py` works standalone
-2. Or: Package the extension properly with `pip install -e .`
-3. Or: Rewrite the CLI to not use relative imports
+Stage 1: /debug executes → outputs root cause + fix
+Stage 2: /review executes with debug output as context
+```
 
-### Novel Value (Honest)
+## Template Intermediate Steps
 
-The value is in the **prompting patterns**, not the code:
-- Systematic debugging protocol
-- Domain-aware review focus
-- RMP loop structure with quality tracking
-- Strategy selection heuristics
+See each step of template construction:
 
-These work because they're encoded in the prompt, not because of dynamic registry lookup.
+```
+/template "explain recursion"
 
-## Usage
+v0: [empty]
+v1: + role → "You are a teacher"
+v2: + context → "explaining to a beginner"
+v3: + task → "explain recursion"
+v4: + format → "use examples and diagrams"
+v5: [final template ready]
+```
+
+## Usage Examples
 
 ```bash
-# Apply meta-prompting
-/meta "Implement a rate limiter for an API"
+# Auto-route to appropriate command
+/route "fix the null pointer in user.py"
 
-# Domain-aware code review
-/review src/auth.py
+# Build optimal prompt for task
+/build-prompt "design a REST API for user management"
 
-# Systematic debugging
+# Chain multiple commands
+/chain "/template then /rmp" "implement LRU cache"
+
+# Full meta-prompting
+/meta "review this sorting algorithm"
+
+# Visible template construction
+/template "explain async/await to a beginner"
+
+# Direct domain command
 /debug "TypeError: Cannot read property 'map' of undefined"
-
-# RMP loop with quality threshold
-/rmp "Design a caching strategy for user sessions" 8
 ```
+
+## How "Prompts Calling Prompts" Works
+
+1. `/route` analyzes your task
+2. Determines best command: "/debug"
+3. Routes to `/debug` with your task
+4. `/debug` executes its template
+5. Returns result through `/route`
+
+This is meta-prompting: a prompt that reasons about which prompt to use.
