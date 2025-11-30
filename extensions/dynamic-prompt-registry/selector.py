@@ -16,7 +16,7 @@ DOMAIN_KEYWORDS = {
     Domain.SECURITY: ["security", "auth", "password", "token", "injection", "xss", "csrf", "vulnerability"],
     Domain.API: ["api", "endpoint", "rest", "http", "request", "response", "route"],
     Domain.DATABASE: ["database", "sql", "query", "table", "index", "transaction"],
-    Domain.TESTING: ["test", "unit", "mock", "assert", "coverage"],
+    Domain.TESTING: ["test", "tests", "testing", "unit", "mock", "assert", "coverage"],  # Added plurals
     Domain.DEBUG: ["debug", "error", "bug", "fix", "issue", "crash", "exception"],
 }
 
