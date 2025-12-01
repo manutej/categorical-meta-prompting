@@ -657,3 +657,482 @@ LAW_VERIFICATION:
 ```bash
 /meta @skills:law-verification "verify comonad laws for /context command"
 ```
+
+---
+
+## Categorical Workflow Prompts
+
+### {prompt:functor-transform}
+
+**Domain**: CORE
+**Quality**: 0.90
+**Tags**: functor, task-transformation, meta-prompting
+**Categorical Role**: F: Task → Prompt
+
+**Description**: Transform a task into a well-structured prompt using functor principles. Preserves task structure while adding systematic approach.
+
+**Template**:
+```
+You are applying Functor F to transform a task into an effective prompt.
+
+## Task
+{task}
+
+## Functor F: Task → Prompt
+
+### Step 1: Structure Analysis
+Identify the core structure of the task:
+- Primary objective: [EXTRACT]
+- Key constraints: [EXTRACT]
+- Domain: [CLASSIFY: ALGORITHM | SECURITY | API | DEBUG | TESTING | GENERAL]
+- Complexity: [CLASSIFY: L1-L7]
+
+### Step 2: Structure-Preserving Transformation
+Transform while preserving:
+- The objective becomes the prompt goal
+- Constraints become requirements
+- Domain determines approach/persona
+
+### Step 3: Prompt Construction
+Build the prompt with:
+1. Clear objective statement
+2. Systematic approach for the domain
+3. Expected output format
+4. Quality criteria
+
+## F(Task) Output
+[GENERATED PROMPT]
+```
+
+**Usage**:
+```bash
+/meta "implement rate limiter"  # Uses functor internally
+/meta @domain:SECURITY "review auth"  # Domain-specific functor
+```
+
+---
+
+### {prompt:monad-refine}
+
+**Domain**: CORE
+**Quality**: 0.92
+**Tags**: monad, refinement, quality-iteration
+**Categorical Role**: M: Prompt →^n Prompt
+
+**Description**: Iteratively refine output using monadic bind until quality threshold is met.
+
+**Template**:
+```
+You are applying Monad M for iterative refinement.
+
+## Current State
+Iteration: {n}
+Quality Target: {quality_threshold}
+Current Output:
+{current_output}
+
+## Quality Assessment (0-1 scale)
+- Correctness: [0-1] - Does it solve the problem?
+- Completeness: [0-1] - Are edge cases handled?
+- Clarity: [0-1] - Is it understandable?
+- Efficiency: [0-1] - Is it well-designed?
+
+Aggregate = 0.40×correctness + 0.25×clarity + 0.20×completeness + 0.15×efficiency
+
+## M.bind Decision
+IF aggregate >= {quality_threshold}:
+  STATUS: CONVERGED ✓
+  Return current output
+
+ELSE:
+  STATUS: CONTINUE
+
+  ### Improvement Direction
+  Lowest dimension: [IDENTIFY]
+  Specific improvements needed:
+  1. [IMPROVEMENT_1]
+  2. [IMPROVEMENT_2]
+
+  ### Refined Output
+  [IMPROVED VERSION]
+```
+
+**Usage**:
+```bash
+/rmp @quality:0.85 "implement password validation"
+/rmp @quality:0.9 @max_iterations:5 "optimize algorithm"
+```
+
+---
+
+### {prompt:comonad-extract}
+
+**Domain**: CORE
+**Quality**: 0.88
+**Tags**: comonad, context-extraction, focus
+**Categorical Role**: W: History → Context
+
+**Description**: Extract focused context from execution history using comonad operations.
+
+**Template**:
+```
+You are applying Comonad W to extract context.
+
+## Operation: {mode}  # extract | duplicate | extend
+
+### W.extract: Focus on Current
+IF mode == "extract":
+  Focus target: {focus}  # recent | all | file | conversation
+  Depth: {depth}
+
+  Extract:
+  - Relevant history entries
+  - Key decisions made
+  - Active files and changes
+  - Current state summary
+
+  Output: Focused context object
+
+### W.duplicate: Meta-Observation
+IF mode == "duplicate":
+  Create observation of the observation:
+  - What was focused on
+  - What was filtered out
+  - Why certain context was prioritized
+  - Meta-level insights about the process
+
+  Output: W(W(context)) for debugging prompts
+
+### W.extend: Context-Aware Transform
+IF mode == "extend":
+  Transform: {transform}  # summarize | analyze | synthesize
+
+  Apply transformation with full context access:
+  - Function receives entire context, not just focused value
+  - Enables context-dependent processing
+
+  Output: Transformed context with awareness
+
+## Comonad Laws (Verify)
+- extract ∘ duplicate = id ✓
+- fmap extract ∘ duplicate = id ✓
+```
+
+**Usage**:
+```bash
+/context @mode:extract @focus:recent @depth:5 "what have we done?"
+/context @mode:duplicate "why did the prompt fail?"
+/context @mode:extend @transform:summarize "executive summary"
+```
+
+---
+
+### {prompt:nat-transform}
+
+**Domain**: CORE
+**Quality**: 0.89
+**Tags**: natural-transformation, strategy-switching, optimization
+**Categorical Role**: α: F ⇒ G
+
+**Description**: Transform between prompting strategies while preserving task semantics (naturality condition).
+
+**Template**:
+```
+You are applying Natural Transformation α: F_{from} ⇒ F_{to}
+
+## Source Strategy: {from}
+Quality baseline: {from_quality}
+Characteristics: {from_chars}
+
+## Target Strategy: {to}
+Quality baseline: {to_quality}
+Characteristics: {to_chars}
+
+## Task
+{task}
+
+## Transformation α[{from}→{to}]
+
+### Step 1: Extract Task Semantics
+From the source prompt, identify:
+- Core task objective
+- Key requirements
+- Domain context
+
+### Step 2: Apply Target Strategy
+Transform by adding/modifying:
+{transformation_rules}
+
+### Step 3: Verify Naturality
+The naturality condition must hold:
+  α_B ∘ F(f) = G(f) ∘ α_A
+
+In practice: "Transforming then refining = Refining then transforming"
+- Task semantics preserved ✓
+- Transformation is uniform ✓
+
+## Transformed Output
+Strategy: {to}
+Quality factor: {quality_factor}
+Expected quality: {from_quality} × {quality_factor}
+
+[TRANSFORMED PROMPT]
+```
+
+**Strategy Transformations**:
+| From → To | Add | Quality Factor |
+|-----------|-----|----------------|
+| ZS → CoT | "Let's think step by step" + reasoning structure | 1.25 |
+| ZS → FS | Examples (2-5) | 1.15 |
+| FS → CoT | Convert examples to reasoning traces | 1.10 |
+| CoT → ToT | Branch points + evaluation | 1.05 |
+| Any → Meta | Self-reflection wrapper | 1.10-1.35 |
+
+**Usage**:
+```bash
+/transform @from:zero-shot @to:chain-of-thought "explain binary search"
+/transform @mode:analyze "debug intermittent test"  # Auto-recommend
+```
+
+---
+
+### {prompt:pipeline-compose}
+
+**Domain**: CORE
+**Quality**: 0.91
+**Tags**: composition, pipeline, workflow
+**Categorical Role**: Kleisli composition (>=>)
+
+**Description**: Compose multiple categorical operations into a pipeline with quality tracking.
+
+**Template**:
+```
+You are composing a categorical pipeline.
+
+## Pipeline Definition
+{pipeline}  # e.g., [W→α→F→M]
+
+## Operators
+- → (Sequence): Output flows to next input, quality = min(q1, q2)
+- || (Parallel): Execute concurrently, quality = mean(q1, q2, ...)
+- ⊗ (Tensor): Combine capabilities, quality = min(q1, q2)
+- >=> (Kleisli): Quality-gated composition, quality improves
+
+## Stage Execution
+
+### Stage 1: {stage_1}
+Input: {input}
+Operation: {op_1}
+Output: {output_1}
+Quality: {q_1}
+
+### Stage 2: {stage_2}
+Input: {output_1}
+Operation: {op_2}
+Output: {output_2}
+Quality: min({q_1}, {q_2})
+
+[Continue for each stage...]
+
+## Pipeline Quality
+Aggregate: {pipeline_quality}
+Status: {COMPLETE | QUALITY_GATE_FAILED | ERROR}
+
+## Final Output
+[PIPELINE RESULT]
+```
+
+**Usage**:
+```bash
+/chain [/context→/transform→/meta→/rmp] "complex feature"
+/chain [/review:security || /review:performance] "audit code"
+```
+
+---
+
+## Workflow Pattern Prompts
+
+### {prompt:bug-fix-workflow}
+
+**Domain**: WORKFLOW
+**Quality**: 0.87
+**Tags**: debugging, workflow, systematic
+**Pipeline**: W → F → M
+
+**Template**:
+```
+## Bug Fix Workflow: W → F → M
+
+### Phase 1: Context Extraction (W)
+/context @mode:extract @focus:file "{file}"
+
+Extract:
+- Error symptoms
+- Recent changes to file
+- Related code
+- Test failures
+
+### Phase 2: Debug Transformation (F)
+/meta @domain:DEBUG
+
+Apply systematic debugging:
+1. Reproduce the issue
+2. Isolate the cause
+3. Form hypothesis
+4. Test hypothesis
+5. Implement fix
+
+### Phase 3: Refinement Loop (M)
+/rmp @quality:0.85
+
+Iterate until:
+- Fix addresses root cause
+- No regression introduced
+- Tests pass
+- Code quality maintained
+
+## Output
+- Fixed code
+- Explanation of cause
+- Test verification
+```
+
+---
+
+### {prompt:code-review-workflow}
+
+**Domain**: WORKFLOW
+**Quality**: 0.89
+**Tags**: review, parallel, quality
+**Pipeline**: W → (F || F || F) → Synthesize
+
+**Template**:
+```
+## Code Review Workflow: Parallel Analysis
+
+### Phase 1: Context (W)
+/context @mode:extract @focus:file
+
+Gather:
+- File purpose
+- Recent changes
+- Project conventions
+
+### Phase 2: Parallel Reviews (F || F || F)
+
+#### Security Review
+/meta @domain:SECURITY @template:{context:reviewer}
+- Authentication/authorization
+- Input validation
+- Data exposure
+
+#### Performance Review
+/meta @domain:PERFORMANCE @template:{context:reviewer}
+- Algorithm efficiency
+- Memory usage
+- Scalability
+
+#### Quality Review
+/meta @domain:QUALITY @template:{context:reviewer}
+- Code clarity
+- Test coverage
+- Documentation
+
+### Phase 3: Synthesis
+Aggregate: quality = mean(q_security, q_performance, q_quality)
+
+Combine findings:
+- Critical issues (must fix)
+- Recommendations (should fix)
+- Suggestions (nice to have)
+```
+
+---
+
+### {prompt:feature-implementation-workflow}
+
+**Domain**: WORKFLOW
+**Quality**: 0.90
+**Tags**: implementation, full-pipeline, systematic
+**Pipeline**: W → α → F → M
+
+**Template**:
+```
+## Feature Implementation: Full Pipeline
+
+### Phase 1: Context Gathering (W)
+/context @mode:extract @focus:all
+
+Understand:
+- Existing architecture
+- Project patterns
+- Related code
+- Conventions
+
+### Phase 2: Strategy Selection (α)
+/transform @mode:analyze "{feature}"
+
+Select optimal strategy based on:
+- Feature complexity
+- Uncertainty level
+- Quality requirements
+
+### Phase 3: Implementation (F)
+/meta @tier:{tier} @template:{context:expert}+{mode:cot}
+
+Generate implementation:
+- Following project patterns
+- With proper error handling
+- Including tests
+
+### Phase 4: Refinement (M)
+/rmp @quality:0.88
+
+Iterate until:
+- All requirements met
+- Tests pass
+- Code quality ≥ 0.88
+
+## Deliverables
+- Implementation code
+- Unit tests
+- Integration tests
+- Documentation
+```
+
+---
+
+## Quick Reference
+
+### Prompt Registry Summary
+
+| Prompt | Domain | Quality | Usage |
+|--------|--------|---------|-------|
+| `{prompt:categorical-structure}` | FRAMEWORK | 0.92 | Implement any categorical structure |
+| `{prompt:command-creation}` | FRAMEWORK | 0.88 | Create new slash commands |
+| `{prompt:law-verification}` | FRAMEWORK | 0.85 | Verify categorical laws |
+| `{prompt:functor-transform}` | CORE | 0.90 | Task → Prompt transformation |
+| `{prompt:monad-refine}` | CORE | 0.92 | Iterative refinement |
+| `{prompt:comonad-extract}` | CORE | 0.88 | Context extraction |
+| `{prompt:nat-transform}` | CORE | 0.89 | Strategy switching |
+| `{prompt:pipeline-compose}` | CORE | 0.91 | Pipeline composition |
+| `{prompt:bug-fix-workflow}` | WORKFLOW | 0.87 | Systematic bug fixing |
+| `{prompt:code-review-workflow}` | WORKFLOW | 0.89 | Multi-dimensional review |
+| `{prompt:feature-implementation-workflow}` | WORKFLOW | 0.90 | Full implementation pipeline |
+
+### By Categorical Role
+
+| Structure | Prompt | Command |
+|-----------|--------|---------|
+| Functor F | `{prompt:functor-transform}` | `/meta` |
+| Monad M | `{prompt:monad-refine}` | `/rmp` |
+| Comonad W | `{prompt:comonad-extract}` | `/context` |
+| Nat. Trans α | `{prompt:nat-transform}` | `/transform` |
+| Composition | `{prompt:pipeline-compose}` | `/chain` |
+
+---
+
+**Registry Version**: 2.0
+**Last Updated**: 2025-12-01
+**Prompts Registered**: 11
+**Average Quality**: 0.89
