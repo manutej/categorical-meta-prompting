@@ -1,0 +1,24 @@
+{
+  "title": "Categorical Meta-Prompting Cheat Sheet",
+  "name": "CHEAT-SHEET",
+  "file": "/Users/manu/Documents/LUXOR/categorical-meta-prompting/docs/CHEAT-SHEET.md",
+  "file_size": 13933,
+  "line_count": 369,
+  "word_count": 1380,
+  "section_count": 48,
+  "code_blocks": 21,
+  "links": 0,
+  "images": 0,
+  "has_math": false,
+  "modified": "2025-12-01T08:04:46.130711",
+  "created": "2025-12-01T08:04:46.156490",
+  "summary": "# Categorical Meta-Prompting Cheat Sheet  **Version**: 2.2 | **Status**: Production Ready | **Quick Reference**  ---  ## Core Categorical Structures  ``` ┌─────────────────────────────────────────────",
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pdf_files": {
+    "light": "light/CHEAT-SHEET-light.pdf",
+    "dark": "dark/CHEAT-SHEET-dark.pdf"
+  }
+}

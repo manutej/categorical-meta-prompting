@@ -1,0 +1,1069 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.0, pytest-9.0.1, pluggy-1.6.0 -- /Users/manu/Documents/LUXOR/categorical-meta-prompting/venv/bin/python3.14
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: /Users/manu/Documents/LUXOR/categorical-meta-prompting
+configfile: pytest.ini
+plugins: hypothesis-6.148.3, cov-7.0.0
+collecting ... collected 97 items
+
+tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_left_identity_law FAILED [  1%]
+tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_right_identity_law FAILED [  2%]
+tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_associativity_law FAILED [  3%]
+tests/categorical/test_comonad.py::TestComonadLaws::test_runtime_law_verification FAILED [  4%]
+tests/categorical/test_comonad.py::TestComonadExtend::test_extend_applies_function_with_context FAILED [  5%]
+tests/categorical/test_comonad.py::TestComonadExtend::test_extend_composition FAILED [  6%]
+tests/categorical/test_comonad.py::TestComonadExtend::test_extend_with_extract_is_identity FAILED [  7%]
+tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_quality_assessment FAILED [  8%]
+tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_completeness_assessment FAILED [  9%]
+tests/categorical/test_comonad.py::TestComonadImplementation::test_history_accumulation FAILED [ 10%]
+tests/categorical/test_comonad.py::TestComonadImplementation::test_meta_observation_context FAILED [ 11%]
+tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extract_focused_view FAILED [ 12%]
+tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_duplicate_meta_observation FAILED [ 13%]
+tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extend_context_aware_transformation FAILED [ 14%]
+tests/categorical/test_functor.py::TestFunctorLaws::test_functor_identity_law ERROR [ 15%]
+tests/categorical/test_functor.py::TestFunctorLaws::test_functor_composition_law ERROR [ 16%]
+tests/categorical/test_functor.py::TestFunctorLaws::test_functor_preserves_structure ERROR [ 17%]
+tests/categorical/test_functor.py::TestFunctorLaws::test_runtime_law_verification ERROR [ 18%]
+tests/categorical/test_functor.py::TestFunctorImplementation::test_complexity_analysis_integration ERROR [ 19%]
+tests/categorical/test_functor.py::TestFunctorImplementation::test_strategy_selection_integration ERROR [ 20%]
+tests/categorical/test_monad.py::TestMonadLaws::test_monad_left_identity_law FAILED [ 21%]
+tests/categorical/test_monad.py::TestMonadLaws::test_monad_right_identity_law FAILED [ 22%]
+tests/categorical/test_monad.py::TestMonadLaws::test_monad_associativity_law FAILED [ 23%]
+tests/categorical/test_monad.py::TestMonadLaws::test_runtime_law_verification FAILED [ 24%]
+tests/categorical/test_monad.py::TestMonadImplementation::test_quality_assessment FAILED [ 25%]
+tests/categorical/test_monad.py::TestMonadImplementation::test_meta_level_tracking FAILED [ 26%]
+tests/categorical/test_monad.py::TestMonadImplementation::test_history_tracking FAILED [ 27%]
+tests/categorical/test_monad.py::TestMonadImplementation::test_quality_tensor_product FAILED [ 28%]
+tests/categorical/test_monad.py::TestKleisliComposition::test_kleisli_composition FAILED [ 29%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_complete_workflow ERROR [ 30%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_quality_improvement_over_iterations ERROR [ 31%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_early_stopping_on_quality_threshold ERROR [ 32%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_max_iterations_limit ERROR [ 34%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_execution_metadata_tracking ERROR [ 35%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_statistics_tracking ERROR [ 36%]
+tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_factory_function FAILED [ 37%]
+tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_quality_monitoring_during_execution ERROR [ 38%]
+tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_degradation_detection FAILED [ 39%]
+tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_quality_trend_analysis PASSED [ 40%]
+tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_component_breakdown PASSED [ 41%]
+tests/integration/test_categorical_engine.py::TestEndToEndScenarios::test_game_of_24_scenario ERROR [ 42%]
+tests/integration/test_categorical_engine.py::TestEndToEndScenarios::test_complex_reasoning_task ERROR [ 43%]
+tests/test_categorical_laws_property.py::TestFunctorLaws::test_functor_identity_law PASSED [ 44%]
+tests/test_categorical_laws_property.py::TestFunctorLaws::test_functor_composition_law PASSED [ 45%]
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_left_identity PASSED [ 46%]
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_right_identity PASSED [ 47%]
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_associativity PASSED [ 48%]
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_left_counit PASSED [ 49%]
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_right_counit PASSED [ 50%]
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_coassociativity PASSED [ 51%]
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_associativity PASSED [ 52%]
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_unit_left PASSED [ 53%]
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_unit_right PASSED [ 54%]
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_commutativity PASSED [ 55%]
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_quality_bounds PASSED [ 56%]
+tests/test_categorical_laws_property.py::TestCategoricalIntegration::test_full_pipeline_preserves_structure PASSED [ 57%]
+tests/test_categorical_laws_property.py::TestCategoricalIntegration::test_functor_composition_over_list PASSED [ 58%]
+tests/test_comonad_laws.py::TestComonadLaws::test_law_1_left_identity PASSED [ 59%]
+tests/test_comonad_laws.py::TestComonadLaws::test_law_2_right_identity PASSED [ 60%]
+tests/test_comonad_laws.py::TestComonadLaws::test_law_3_associativity PASSED [ 61%]
+tests/test_comonad_laws.py::TestExtendLaws::test_extend_extract_identity PASSED [ 62%]
+tests/test_comonad_laws.py::TestExtendLaws::test_extract_extend PASSED   [ 63%]
+tests/test_comonad_laws.py::TestExtendLaws::test_extend_composition PASSED [ 64%]
+tests/test_comonad_laws.py::TestFmapDerivedLaws::test_fmap_identity PASSED [ 65%]
+tests/test_comonad_laws.py::TestFmapDerivedLaws::test_fmap_composition PASSED [ 67%]
+tests/test_comonad_laws.py::TestQualityPropagation::test_extract_quality_degradation PASSED [ 68%]
+tests/test_comonad_laws.py::TestQualityPropagation::test_duplicate_quality_preservation PASSED [ 69%]
+tests/test_comonad_laws.py::TestComonadIntegration::test_context_pipeline PASSED [ 70%]
+tests/test_comonad_laws.py::TestComonadIntegration::test_meta_observation PASSED [ 71%]
+tests/test_error_handling_laws.py::test_either_left_identity PASSED      [ 72%]
+tests/test_error_handling_laws.py::test_either_right_identity PASSED     [ 73%]
+tests/test_error_handling_laws.py::test_either_associativity PASSED      [ 74%]
+tests/test_error_handling_laws.py::test_catch_identity_law PASSED        [ 75%]
+tests/test_error_handling_laws.py::test_catch_error_law PASSED           [ 76%]
+tests/test_error_handling_laws.py::test_catch_composition_law PASSED     [ 77%]
+tests/test_error_handling_laws.py::test_error_propagates_through_bind PASSED [ 78%]
+tests/test_error_handling_laws.py::test_chain_halts_on_error_with_catch_halt PASSED [ 79%]
+tests/test_error_handling_laws.py::test_retry_succeeds_within_limit FAILED [ 80%]
+tests/test_error_handling_laws.py::test_retry_fails_after_limit PASSED   [ 81%]
+tests/test_error_handling_laws.py::test_fallback_return_best_preserves_quality PASSED [ 82%]
+tests/test_error_handling_laws.py::test_error_handling_preserves_associativity PASSED [ 83%]
+tests/test_error_handling_laws.py::test_skip_converts_error_to_empty PASSED [ 84%]
+tests/test_error_handling_laws.py::test_substitute_uses_backup_command PASSED [ 85%]
+tests/test_error_handling_laws.py::test_functor_identity_with_either PASSED [ 86%]
+tests/test_error_handling_laws.py::test_functor_composition_with_either PASSED [ 87%]
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_zs_to_cot_naturality PASSED [ 88%]
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_zs_to_fs_naturality PASSED [ 89%]
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_cot_to_tot_naturality PASSED [ 90%]
+tests/test_natural_transformation_laws.py::TestTransformationComposition::test_vertical_composition PASSED [ 91%]
+tests/test_natural_transformation_laws.py::TestTransformationComposition::test_composition_quality_factors PASSED [ 92%]
+tests/test_natural_transformation_laws.py::TestTransformationComposition::test_identity_transformation PASSED [ 93%]
+tests/test_natural_transformation_laws.py::TestFunctorLaws::test_functor_identity PASSED [ 94%]
+tests/test_natural_transformation_laws.py::TestFunctorLaws::test_functor_composition PASSED [ 95%]
+tests/test_natural_transformation_laws.py::TestQualityPropagation::test_transformation_quality_factors PASSED [ 96%]
+tests/test_natural_transformation_laws.py::TestQualityPropagation::test_quality_bounds PASSED [ 97%]
+tests/test_natural_transformation_laws.py::TestIntegration::test_full_transformation_pipeline PASSED [ 98%]
+tests/test_natural_transformation_laws.py::TestIntegration::test_transformation_preserves_task_semantics PASSED [100%]
+
+==================================== ERRORS ====================================
+_________ ERROR at setup of TestFunctorLaws.test_functor_identity_law __________
+tests/categorical/test_functor.py:108: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+________ ERROR at setup of TestFunctorLaws.test_functor_composition_law ________
+tests/categorical/test_functor.py:108: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+______ ERROR at setup of TestFunctorLaws.test_functor_preserves_structure ______
+tests/categorical/test_functor.py:108: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_______ ERROR at setup of TestFunctorLaws.test_runtime_law_verification ________
+tests/categorical/test_functor.py:108: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestFunctorImplementation.test_complexity_analysis_integration _
+tests/categorical/test_functor.py:255: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestFunctorImplementation.test_strategy_selection_integration _
+tests/categorical/test_functor.py:255: in functor
+    return create_task_to_prompt_functor()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+__ ERROR at setup of TestCategoricalEngineIntegration.test_complete_workflow ___
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestCategoricalEngineIntegration.test_quality_improvement_over_iterations _
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestCategoricalEngineIntegration.test_early_stopping_on_quality_threshold _
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestCategoricalEngineIntegration.test_max_iterations_limit _
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestCategoricalEngineIntegration.test_execution_metadata_tracking _
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestCategoricalEngineIntegration.test_statistics_tracking __
+tests/integration/test_categorical_engine.py:73: in engine
+    return CategoricalMetaPromptingEngine(llm_client=mock_llm, config=config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_ ERROR at setup of TestQualityMonitoringIntegration.test_quality_monitoring_during_execution _
+file /Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py, line 240
+      def test_quality_monitoring_during_execution(
+E       fixture 'mock_llm' not found
+>       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, monitor, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py:240
+_______ ERROR at setup of TestEndToEndScenarios.test_game_of_24_scenario _______
+file /Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py, line 332
+      def test_game_of_24_scenario(self, mock_llm: MockLLMClient):
+E       fixture 'mock_llm' not found
+>       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py:332
+_____ ERROR at setup of TestEndToEndScenarios.test_complex_reasoning_task ______
+file /Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py, line 369
+      def test_complex_reasoning_task(self, mock_llm: MockLLMClient):
+E       fixture 'mock_llm' not found
+>       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, cov, doctest_namespace, monkeypatch, no_cover, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/Users/manu/Documents/LUXOR/categorical-meta-prompting/tests/integration/test_categorical_engine.py:369
+=================================== FAILURES ===================================
+________________ TestComonadLaws.test_comonad_left_identity_law ________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_left_identity_law' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_______________ TestComonadLaws.test_comonad_right_identity_law ________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_right_identity_law' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+________________ TestComonadLaws.test_comonad_associativity_law ________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_associativity_law' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+________________ TestComonadLaws.test_runtime_law_verification _________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_runtime_law_verification' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_________ TestComonadExtend.test_extend_applies_function_with_context __________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_applies_function_with_context' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+__________________ TestComonadExtend.test_extend_composition ___________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_composition' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+____________ TestComonadExtend.test_extend_with_extract_is_identity ____________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_with_extract_is_identity' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+________ TestComonadImplementation.test_observation_quality_assessment _________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_quality_assessment' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+______ TestComonadImplementation.test_observation_completeness_assessment ______
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_completeness_assessment' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_____________ TestComonadImplementation.test_history_accumulation ______________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_history_accumulation' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+___________ TestComonadImplementation.test_meta_observation_context ____________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_meta_observation_context' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_____________ TestCC2ObserveIntegration.test_extract_focused_view ______________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extract_focused_view' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+__________ TestCC2ObserveIntegration.test_duplicate_meta_observation ___________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_duplicate_meta_observation' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+______ TestCC2ObserveIntegration.test_extend_context_aware_transformation ______
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extend_context_aware_transformation' uses a function-scoped fixture 'comonad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+__________________ TestMonadLaws.test_monad_left_identity_law __________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_left_identity_law' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_________________ TestMonadLaws.test_monad_right_identity_law __________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_right_identity_law' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+__________________ TestMonadLaws.test_monad_associativity_law __________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_associativity_law' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_________________ TestMonadLaws.test_runtime_law_verification __________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_runtime_law_verification' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_______________ TestMonadImplementation.test_quality_assessment ________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_quality_assessment' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_______________ TestMonadImplementation.test_meta_level_tracking _______________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_meta_level_tracking' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+________________ TestMonadImplementation.test_history_tracking _________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_history_tracking' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_____________ TestMonadImplementation.test_quality_tensor_product ______________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_quality_tensor_product' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+_______________ TestKleisliComposition.test_kleisli_composition ________________
+E   hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestKleisliComposition::test_kleisli_composition' uses a function-scoped fixture 'monad'.
+    
+    Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+    
+    If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+    
+    If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+All traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames.
+____________ TestCategoricalEngineIntegration.test_factory_function ____________
+tests/integration/test_categorical_engine.py:211: in test_factory_function
+    engine = create_categorical_engine(
+meta_prompting_engine/categorical/engine.py:534: in create_categorical_engine
+    return CategoricalMetaPromptingEngine(
+meta_prompting_engine/categorical/engine.py:186: in __init__
+    self.functor: Functor = create_task_to_prompt_functor()
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+_________ TestQualityMonitoringIntegration.test_degradation_detection __________
+tests/integration/test_categorical_engine.py:280: in test_degradation_detection
+    assert monitor.is_degrading()
+E   assert False
+E    +  where False = is_degrading()
+E    +    where is_degrading = <meta_prompting_engine.monitoring.enriched_quality.QualityMonitor object at 0x105f47390>.is_degrading
+------------------------------ Captured log call -------------------------------
+WARNING  meta_prompting_engine.monitoring.enriched_quality:enriched_quality.py:201 Quality degradation detected: 0.850 → 0.700 (degradation=0.150, consecutive=1)
+_______________________ test_retry_succeeds_within_limit _______________________
+tests/test_error_handling_laws.py:334: in test_retry_succeeds_within_limit
+    @settings(max_examples=20)
+                   ^^^
+tests/test_error_handling_laws.py:351: in test_retry_succeeds_within_limit
+    assert result.is_right(), \
+E   AssertionError: Should succeed on attempt 2 within 5 retries
+E   assert False
+E    +  where False = is_right()
+E    +    where is_right = Left(Attempt 1 failed).is_right
+E   Falsifying example: test_retry_succeeds_within_limit(
+E       succeed_on=2,
+E   )
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.14.0-final-0 _______________
+
+Name                                                   Stmts   Miss  Cover
+--------------------------------------------------------------------------
+meta_prompting_engine/__init__.py                          5      0   100%
+meta_prompting_engine/categorical/__init__.py              5      0   100%
+meta_prompting_engine/categorical/comonad.py              70     38    46%
+meta_prompting_engine/categorical/complexity.py           63     56    11%
+meta_prompting_engine/categorical/engine.py              134     74    45%
+meta_prompting_engine/categorical/functor.py              47     31    34%
+meta_prompting_engine/categorical/monad.py                58     28    52%
+meta_prompting_engine/categorical/quality.py              89     78    12%
+meta_prompting_engine/categorical/strategy.py             16     11    31%
+meta_prompting_engine/categorical/types.py                54     12    78%
+meta_prompting_engine/monitoring/__init__.py               2      0   100%
+meta_prompting_engine/monitoring/enriched_quality.py     141     35    75%
+tests/__init__.py                                          0      0   100%
+tests/categorical/__init__.py                              0      0   100%
+tests/categorical/test_comonad.py                        141     73    48%
+tests/categorical/test_functor.py                         80     42    48%
+tests/categorical/test_monad.py                          142     84    41%
+tests/integration/__init__.py                              0      0   100%
+tests/integration/test_categorical_engine.py             156     93    40%
+tests/test_categorical_laws_property.py                  229     32    86%
+tests/test_comonad_laws.py                               160     18    89%
+tests/test_error_handling_laws.py                        222      7    97%
+tests/test_natural_transformation_laws.py                238     12    95%
+--------------------------------------------------------------------------
+TOTAL                                                   2052    724    65%
+Coverage HTML written to dir htmlcov
+============================ Hypothesis Statistics =============================
+tests/test_categorical_laws_property.py::TestFunctorLaws::test_functor_identity_law:
+
+  - during generate phase (0.16 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestFunctorLaws::test_functor_composition_law:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_left_identity:
+
+  - during generate phase (0.76 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 21 invalid examples
+    - Events:
+      * 32.23%, Retried draw from text(characters(categories=(), include_characters='abcdefghijklmnopqrstuvwxyz'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_right_identity:
+
+  - during generate phase (0.07 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 12 invalid examples
+    - Events:
+      * 24.11%, Retried draw from text(characters(categories=(), include_characters='abcdefghijklmnopqrstuvwxyz'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestMonadLaws::test_monad_associativity:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 7 invalid examples
+    - Events:
+      * 22.81%, Retried draw from text(characters(categories=(), include_characters='abcdefghijklmnopqrstuvwxyz'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_left_counit:
+
+  - during generate phase (0.05 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 17 invalid examples
+    - Events:
+      * 34.19%, Retried draw from text(characters(codec='utf-8'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_right_counit:
+
+  - during generate phase (0.06 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 26 invalid examples
+    - Events:
+      * 36.51%, Retried draw from text(characters(codec='utf-8'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestComonadLaws::test_comonad_coassociativity:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 13 invalid examples
+    - Events:
+      * 30.16%, Retried draw from text(characters(codec='utf-8'), min_size=1, max_size=20).filter(not_yet_in_unique_list) to satisfy filter
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_associativity:
+
+  - during generate phase (0.04 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_unit_left:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_unit_right:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_tensor_commutativity:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestQualityEnrichment::test_quality_bounds:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_categorical_laws_property.py::TestCategoricalIntegration::test_full_pipeline_preserves_structure:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_categorical_laws_property.py::TestCategoricalIntegration::test_functor_composition_over_list:
+
+  - during generate phase (0.01 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 20 passing examples, 0 failing examples, 4 invalid examples
+
+  - Stopped because settings.max_examples=20
+
+
+tests/test_comonad_laws.py::TestComonadLaws::test_law_1_left_identity:
+
+  - during generate phase (0.04 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 11 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_comonad_laws.py::TestComonadLaws::test_law_2_right_identity:
+
+  - during generate phase (0.04 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 21 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_comonad_laws.py::TestComonadLaws::test_law_3_associativity:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 9 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_comonad_laws.py::TestExtendLaws::test_extend_extract_identity:
+
+  - during generate phase (0.05 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 16 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_comonad_laws.py::TestExtendLaws::test_extract_extend:
+
+  - during generate phase (0.05 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 17 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_comonad_laws.py::TestExtendLaws::test_extend_composition:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 4 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_comonad_laws.py::TestFmapDerivedLaws::test_fmap_identity:
+
+  - during generate phase (0.04 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 22 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_comonad_laws.py::TestFmapDerivedLaws::test_fmap_composition:
+
+  - during generate phase (0.04 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 9 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_either_left_identity:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_either_right_identity:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_either_associativity:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_catch_identity_law:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_catch_error_law:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_catch_composition_law:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_error_propagates_through_bind:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_chain_halts_on_error_with_catch_halt:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_retry_succeeds_within_limit:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: ~ 0-5 ms, of which < 1ms in data generation
+    - 1 passing examples, 4 failing examples, 0 invalid examples
+    - Found 1 distinct error in this phase
+
+  - Stopped because nothing left to do
+
+
+tests/test_error_handling_laws.py::test_retry_fails_after_limit:
+
+  - during generate phase (0.00 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 10 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because nothing left to do
+
+
+tests/test_error_handling_laws.py::test_error_handling_preserves_associativity:
+
+  - during generate phase (0.01 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_error_handling_laws.py::test_skip_converts_error_to_empty:
+
+  - during generate phase (0.01 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_error_handling_laws.py::test_substitute_uses_backup_command:
+
+  - during generate phase (0.01 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_error_handling_laws.py::test_functor_identity_with_either:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_error_handling_laws.py::test_functor_composition_with_either:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 100 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=100
+
+
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_zs_to_cot_naturality:
+
+  - during generate phase (0.03 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_zs_to_fs_naturality:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_natural_transformation_laws.py::TestNaturalityCondition::test_cot_to_tot_naturality:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_natural_transformation_laws.py::TestFunctorLaws::test_functor_identity:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 50 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=50
+
+
+tests/test_natural_transformation_laws.py::TestFunctorLaws::test_functor_composition:
+
+  - during generate phase (0.02 seconds):
+    - Typical runtimes: < 1ms, of which < 1ms in data generation
+    - 30 passing examples, 0 failing examples, 0 invalid examples
+
+  - Stopped because settings.max_examples=30
+
+
+=========================== short test summary info ============================
+FAILED tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_left_identity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_left_identity_law' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_right_identity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_right_identity_law' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_associativity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_comonad_associativity_law' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadLaws::test_runtime_law_verification - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadLaws::test_runtime_law_verification' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadExtend::test_extend_applies_function_with_context - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_applies_function_with_context' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadExtend::test_extend_composition - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_composition' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadExtend::test_extend_with_extract_is_identity - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadExtend::test_extend_with_extract_is_identity' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_quality_assessment - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_quality_assessment' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_completeness_assessment - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_observation_completeness_assessment' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadImplementation::test_history_accumulation - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_history_accumulation' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestComonadImplementation::test_meta_observation_context - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestComonadImplementation::test_meta_observation_context' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extract_focused_view - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extract_focused_view' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_duplicate_meta_observation - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_duplicate_meta_observation' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extend_context_aware_transformation - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_comonad.py::TestCC2ObserveIntegration::test_extend_context_aware_transformation' uses a function-scoped fixture 'comonad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadLaws::test_monad_left_identity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_left_identity_law' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadLaws::test_monad_right_identity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_right_identity_law' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadLaws::test_monad_associativity_law - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_monad_associativity_law' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadLaws::test_runtime_law_verification - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadLaws::test_runtime_law_verification' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadImplementation::test_quality_assessment - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_quality_assessment' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadImplementation::test_meta_level_tracking - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_meta_level_tracking' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadImplementation::test_history_tracking - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_history_tracking' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestMonadImplementation::test_quality_tensor_product - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestMonadImplementation::test_quality_tensor_product' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/categorical/test_monad.py::TestKleisliComposition::test_kleisli_composition - hypothesis.errors.FailedHealthCheck: 'tests/categorical/test_monad.py::TestKleisliComposition::test_kleisli_composition' uses a function-scoped fixture 'monad'.
+
+Function-scoped fixtures are not reset between inputs generated by `@given(...)`, which is often surprising and can cause subtle test bugs.
+
+If you were expecting the fixture to run separately for each generated input, then unfortunately you will need to find a different way to achieve your goal (for example, replacing the fixture with a similar context manager inside of the test).
+
+If you are confident that your test will work correctly even though the fixture is not reset between generated inputs, you can suppress this health check with @settings(suppress_health_check=[HealthCheck.function_scoped_fixture]). See https://hypothesis.readthedocs.io/en/latest/reference/api.html#hypothesis.HealthCheck for details.
+FAILED tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_factory_function - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+FAILED tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_degradation_detection - assert False
+ +  where False = is_degrading()
+ +    where is_degrading = <meta_prompting_engine.monitoring.enriched_quality.QualityMonitor object at 0x105f47390>.is_degrading
+FAILED tests/test_error_handling_laws.py::test_retry_succeeds_within_limit - AssertionError: Should succeed on attempt 2 within 5 retries
+assert False
+ +  where False = is_right()
+ +    where is_right = Left(Attempt 1 failed).is_right
+Falsifying example: test_retry_succeeds_within_limit(
+    succeed_on=2,
+)
+ERROR tests/categorical/test_functor.py::TestFunctorLaws::test_functor_identity_law - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/categorical/test_functor.py::TestFunctorLaws::test_functor_composition_law - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/categorical/test_functor.py::TestFunctorLaws::test_functor_preserves_structure - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/categorical/test_functor.py::TestFunctorLaws::test_runtime_law_verification - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/categorical/test_functor.py::TestFunctorImplementation::test_complexity_analysis_integration - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/categorical/test_functor.py::TestFunctorImplementation::test_strategy_selection_integration - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_complete_workflow - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_quality_improvement_over_iterations - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_early_stopping_on_quality_threshold - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_max_iterations_limit - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_execution_metadata_tracking - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestCategoricalEngineIntegration::test_statistics_tracking - TypeError: create_task_to_prompt_functor() missing 1 required positional argument: 'llm_client'
+ERROR tests/integration/test_categorical_engine.py::TestQualityMonitoringIntegration::test_quality_monitoring_during_execution
+ERROR tests/integration/test_categorical_engine.py::TestEndToEndScenarios::test_game_of_24_scenario
+ERROR tests/integration/test_categorical_engine.py::TestEndToEndScenarios::test_complex_reasoning_task
+=================== 26 failed, 56 passed, 15 errors in 2.83s ===================

@@ -9,6 +9,10 @@ argument-hint: @quality:[threshold] @max_iterations:[n] @mode:[mode] [task]
 This command implements **Monad M** for iterative refinement with quality convergence.
 
 ```
+Skill: atomic-blocks (internal)
+```
+
+```
 M = (Prompt, unit, bind)
   - unit(p) = MonadPrompt(p, quality=initial)
   - bind(ma, f) = f(ma.prompt) with quality tracking
@@ -19,6 +23,63 @@ M = (Prompt, unit, bind)
 - Left Identity: `unit(a) >>= f = f(a)`
 - Right Identity: `m >>= unit = m`
 - Associativity: `(m >>= f) >>= g = m >>= (λx. f(x) >>= g)`
+
+---
+
+## Internal Block Composition
+
+This command internally uses the following atomic blocks:
+
+```
+/rmp Block Flow:
+┌─────────────────────────────────────────────────────────────┐
+│                                                              │
+│  Task ─► apply_transform ─► execute_prompt ─► Output        │
+│                                    │                         │
+│                                    ▼                         │
+│                            assess_quality                    │
+│                                    │                         │
+│                                    ▼                         │
+│                        evaluate_convergence                  │
+│                           │           │                      │
+│                     [CONVERGED]  [CONTINUE]                  │
+│                           │           │                      │
+│                           ▼           ▼                      │
+│                       RETURN    extract_improvement          │
+│                                       │                      │
+│                                       ▼                      │
+│                               apply_refinement               │
+│                                       │                      │
+│                                       └──► (loop back)       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+
+Blocks Used:
+├── apply_transform    : (Template, Task) → Prompt
+├── execute_prompt     : Prompt → Output
+├── assess_quality     : Output → QualityVector
+├── evaluate_convergence: (QualityVector, Threshold) → Status
+├── extract_improvement: (Output, QualityVector) → Direction
+├── apply_refinement   : (Output, Direction) → RefinedOutput
+└── aggregate_iterations: [Output] → BestOutput
+```
+
+### Block Override Support
+
+Override individual blocks with `@block:` modifier:
+
+```bash
+# Override quality threshold
+/rmp @block:evaluate_convergence.threshold:0.9 "task"
+
+# Override quality weights
+/rmp @block:assess_quality.weights:{correctness:0.5,clarity:0.2} "task"
+
+# Override max refinement attempts per iteration
+/rmp @block:apply_refinement.max_attempts:2 "task"
+```
+
+---
 
 ## Unified Syntax
 

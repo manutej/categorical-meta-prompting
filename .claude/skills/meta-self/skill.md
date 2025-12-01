@@ -14,6 +14,7 @@ F: Task → Prompt        (Functor - structure-preserving transformation)
 M: Prompt →^n Prompt    (Monad - iterative refinement)
 W: History → Context    (Comonad - context extraction)
 α: F ⇒ G                (Natural Transformation - strategy switching)
+E: Either Error A       (Exception Monad - error handling)
 [0,1]: Quality → Quality (Enriched - quality tracking)
 ```
 
@@ -28,8 +29,44 @@ W: History → Context    (Comonad - context extraction)
 6. Comonad Left Id:      extract ∘ duplicate = id
 7. Comonad Associativity: duplicate ∘ duplicate = fmap duplicate ∘ duplicate
 8. Naturality Condition: α_B ∘ F(f) = G(f) ∘ α_A  for all f: A → B
-9. Quality Monotonicity: quality(A ⊗ B) ≤ min(quality(A), quality(B))
+9. Exception Catch Id:   catch(Right(a), h) = Right(a)  (Phase 3)
+10. Exception Catch Err: catch(Left(e), h) = h(e)       (Phase 3)
+11. Exception Assoc:     Error handling preserves Kleisli associativity
+12. Quality Monotonicity: quality(A ⊗ B) ≤ min(quality(A), quality(B))
 ```
+
+### Exception Monad E (Phase 3)
+
+**Type**: `Either<Error, A> = Left(Error) | Right(A)`
+
+**Operations**:
+1. **return**: `a → Right(a)` (pure success)
+2. **bind (>=>)**: Error-propagating composition
+   ```
+   m >>= f = case m of
+     Left(e) → Left(e)        -- error propagates
+     Right(a) → f(a)          -- continue on success
+   ```
+3. **catch**: Error recovery
+   ```
+   catch(m, handler) = case m of
+     Left(e) → handler(e)     -- recover from error
+     Right(a) → Right(a)      -- pass through success
+   ```
+
+**Laws**:
+- **Left Identity**: `return(a) >>= f = f(a)`
+- **Right Identity**: `m >>= return = m`
+- **Associativity**: `(m >>= f) >>= g = m >>= (λx. f(x) >>= g)`
+- **Catch Identity**: `catch(Right(a), h) = Right(a)`
+- **Catch Error**: `catch(Left(e), h) = h(e)`
+- **Catch Composition**: `catch(catch(m, h1), h2) = catch(m, λe. catch(h1(e), h2))`
+
+**In Framework**:
+- Used by `@catch:` modifier for error handling behaviors
+- Used by `@fallback:` modifier for recovery strategies
+- Integrates with `/chain` and `/rmp` commands
+- Preserves composition with existing operators (→, ||, >=>)
 
 ---
 
@@ -98,6 +135,43 @@ All commands support these modifiers. Place them before the task description.
 | `@max_iterations:3` | Fewer iterations |
 
 **Example**: `/rmp @quality:0.9 @max_iterations:3 "task"`
+
+### @catch: - Error Handling Behavior (Phase 3)
+
+| Format | Description | Result |
+|--------|-------------|--------|
+| `@catch:halt` | Stop chain on error (default) | Left(error) |
+| `@catch:log` | Log error, continue chain | Left(error) logged |
+| `@catch:retry:N` | Retry command N times | Right(result) or Left(error) |
+| `@catch:skip` | Skip failed command | Right(empty) |
+| `@catch:substitute:/alt` | Use alternative command | Right(alt_result) |
+
+**Example**: `/chain @catch:retry:3 [/api→/process] "fetch data"`
+
+### @fallback: - Error Recovery Strategy (Phase 3)
+
+| Format | Description | When Used |
+|--------|-------------|-----------|
+| `@fallback:return-best` | Return highest quality result | Iterative refinement |
+| `@fallback:return-last` | Return last successful result | Prefer recency |
+| `@fallback:use-default:[val]` | Use specific default | Known safe value |
+| `@fallback:empty` | Return empty/neutral | Minimal context |
+
+**Example**: `/rmp @fallback:return-best @quality:0.9 "complex task"`
+
+### @quality:visualize - Quality Flow Visualization (Phase 5)
+
+| Format | Description | Output |
+|--------|-------------|--------|
+| `@quality:visualize` | Show quality flow (default: bar chart) | Visual quality tracking |
+| `@quality:visualize:bar` | Bar chart format | ASCII bar chart |
+| `@quality:visualize:flow` | Flow diagram format | Arrows with quality values |
+| `@quality:visualize:detailed` | Detailed breakdown | Full quality metrics |
+| `@quality:visualize:compact` | Compact summary | Single-line summary |
+
+**Categorical Foundation**: Uses [0,1]-enriched category structure where `Hom_Q(A, B) = [0,1]` and quality tensor follows `q1 ⊗ q2 = min(q1, q2)`
+
+**Example**: `/chain @quality:visualize [/analyze→/design→/implement] "build feature"`
 
 ### @template: - Template Components
 
@@ -490,7 +564,7 @@ When executing any command or skill:
 
 | Command | Purpose | Key Modifiers |
 |---------|---------|---------------|
-| `/chain` | Command composition | @mode:, @budget:, @quality: |
+| `/chain` | Command composition | @mode:, @budget:, @quality:, @catch:, @fallback:, @quality:visualize |
 | `/route` | Dynamic routing | @domain: |
 | `/build-prompt` | Template assembly | @template: |
 
@@ -515,7 +589,40 @@ When executing any command or skill:
 | `recursive-meta-prompting` | RMP implementation patterns | @mode:iterative |
 | `dynamic-prompt-registry` | Prompt lookup/composition | @skills:, {prompt:} |
 | `quality-enriched-prompting` | [0,1]-enriched quality | @quality: |
+| `atomic-blocks` | Composable atomic blocks | /blocks, @block: |
 | `meta-self` | This reference | Self-reference |
+
+---
+
+## Atomic Blocks (Layer 3 Access)
+
+For power users who need fine-grained control, the framework exposes atomic blocks that underlie all commands.
+
+### Quick Reference
+
+```
+Skill: atomic-blocks
+Command: /blocks [composition] "task"
+```
+
+### Available Blocks
+
+| Layer | Blocks | Purpose |
+|-------|--------|---------|
+| Assessment | assess_difficulty, assess_domain, assess_quality, select_tier | Analyze and classify |
+| Transformation | select_strategy, build_template, apply_transform, execute_prompt | Transform to outputs |
+| Refinement | evaluate_convergence, extract_improvement, apply_refinement | Monad M iteration |
+| Composition | sequence (→), parallel (\|\|), kleisli (>=>), tensor (⊗) | Combine blocks |
+
+### Progressive Disclosure
+
+| Layer | Users | Access |
+|-------|-------|--------|
+| 1 | 90% | `/meta "task"` - blocks hidden |
+| 2 | 9% | `/meta @block:assess_domain:SECURITY "task"` - override block |
+| 3 | 1% | `/blocks [assess_difficulty → select_tier] "task"` - compose |
+
+**Full specification**: `skill:atomic-blocks`
 
 ---
 
@@ -536,9 +643,12 @@ Before executing any prompt:
 
 ## Version
 
-**Specification Version**: 2.2
+**Specification Version**: 2.5
 **Compatibility**: 100% backward compatible
-**Foundation**: Category Theory (F, M, W, α, [0,1]-enriched)
+**Foundation**: Category Theory (F, M, W, α, E, [0,1]-enriched)
 **Last Updated**: 2025-12-01
+**New in 2.5**: Atomic blocks system with /blocks command, @block: overrides, progressive disclosure
+**New in 2.4**: Quality Visualization via @quality:visualize modifier (Phase 5)
+**New in 2.3**: Exception Monad E for error handling via @catch:/@fallback: modifiers
 **New in 2.2**: Natural Transformation α operations via /transform command
 **New in 2.1**: Comonad W operations via /context command
