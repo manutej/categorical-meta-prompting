@@ -6,7 +6,7 @@
 
 ---
 
-## Downloaded Papers
+## Downloaded Papers (15 total)
 
 | ArXiv ID | Title | Size |
 |----------|-------|------|
@@ -21,6 +21,10 @@
 | 2002.06784 | Graded Algebraic Theories | 344 KB |
 | 2306.01487 | Quantitative Graded Semantics | 954 KB |
 | 2312.00990 | Polynomial Functors (372 pages!) | 3.3 MB |
+| **1603.04641** | **Game Semantics meets Game Theory** | 214 KB |
+| **1711.07059** | **Morphisms of Open Games** | 334 KB |
+| **1910.03656** | **Bayesian Open Games** | 834 KB |
+| **2501.06662** | **Magnitude of Categories of Texts** | 518 KB |
 
 ---
 
@@ -58,6 +62,14 @@ curl -L -o "2306.01487-Quantitative-Graded-Semantics.pdf" "https://arxiv.org/pdf
 
 # Polynomial functors (comprehensive reference)
 curl -L -o "2312.00990-Polynomial-Functors.pdf" "https://arxiv.org/pdf/2312.00990.pdf"
+
+# Open Games (for Pattern 3)
+curl -L -o "1603.04641-Game-Semantics-Game-Theory.pdf" "https://arxiv.org/pdf/1603.04641.pdf"
+curl -L -o "1711.07059-Morphisms-Open-Games.pdf" "https://arxiv.org/pdf/1711.07059.pdf"
+curl -L -o "1910.03656-Bayesian-Open-Games.pdf" "https://arxiv.org/pdf/1910.03656.pdf"
+
+# Enriched Magnitude (for Pattern 10)
+curl -L -o "2501.06662-Magnitude-Categories-Texts.pdf" "https://arxiv.org/pdf/2501.06662.pdf"
 ```
 
 ---
@@ -82,10 +94,19 @@ curl -L -o "2312.00990-Polynomial-Functors.pdf" "https://arxiv.org/pdf/2312.0099
 9. **2002.06784** - Graded Algebraic Theories
 10. **2306.01487** - Quantitative Graded Semantics
 
+### 🎮 Open Games (NEW)
+12. **1603.04641** - Game Semantics meets Game Theory (foundational)
+13. **1711.07059** - Morphisms of Open Games (compositional structure)
+14. **1910.03656** - Bayesian Open Games (probabilistic extension)
+
+### 📏 Enriched Magnitude (NEW)
+15. **2501.06662** - Magnitude of Categories of Texts (semantic distance)
+
 ### 📚 Reference
 11. **2312.00990** - Polynomial Functors (372-page comprehensive book)
 
 ---
 
-**Total**: 11 papers (~9 MB)
-**Status**: Research archive complete
+**Total**: 15 papers (~11 MB)
+**Status**: Research archive complete ✅
+**Last Updated**: 2025-12-08
