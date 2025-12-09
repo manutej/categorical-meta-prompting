@@ -1,0 +1,696 @@
+---
+# =============================================================================
+# Audit Logging and Compliance Configuration for Spark on Kubernetes
+# =============================================================================
+# Version: 1.0
+# Purpose: Production-ready audit logging, compliance tagging, and monitoring
+# Standards: SOC2, PCI-DSS, HIPAA, CIS Kubernetes Benchmark
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Kubernetes Audit Policy
+# -----------------------------------------------------------------------------
+# Configure this on the API server level
+# Reference: https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/
+# -----------------------------------------------------------------------------
+apiVersion: audit.k8s.io/v1
+kind: Policy
+metadata:
+  name: spark-audit-policy
+rules:
+  # -----------------------------------------------------------------------------
+  # Don't log requests to certain non-resource URLs
+  # -----------------------------------------------------------------------------
+  - level: None
+    nonResourceURLs:
+      - /healthz*
+      - /version
+      - /swagger*
+
+  # -----------------------------------------------------------------------------
+  # Don't log watch calls
+  # -----------------------------------------------------------------------------
+  - level: None
+    verbs: ["watch"]
+
+  # -----------------------------------------------------------------------------
+  # Don't log get, list calls to ConfigMaps and Secrets (high volume)
+  # -----------------------------------------------------------------------------
+  - level: None
+    resources:
+      - group: ""
+        resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+
+  # -----------------------------------------------------------------------------
+  # Log Secret access at Metadata level (no secret values)
+  # -----------------------------------------------------------------------------
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets"]
+    namespaces: ["spark-system"]
+
+  # -----------------------------------------------------------------------------
+  # Log all SparkApplication changes at RequestResponse level
+  # -----------------------------------------------------------------------------
+  - level: RequestResponse
+    resources:
+      - group: "sparkoperator.k8s.io"
+        resources: ["sparkapplications", "scheduledsparkapplications"]
+    namespaces: ["spark-system"]
+
+  # -----------------------------------------------------------------------------
+  # Log pod creation/deletion at Request level
+  # -----------------------------------------------------------------------------
+  - level: Request
+    resources:
+      - group: ""
+        resources: ["pods"]
+    verbs: ["create", "delete", "patch"]
+    namespaces: ["spark-system"]
+
+  # -----------------------------------------------------------------------------
+  # Log RBAC changes at RequestResponse level
+  # -----------------------------------------------------------------------------
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["create", "update", "patch", "delete"]
+
+  # -----------------------------------------------------------------------------
+  # Log NetworkPolicy changes
+  # -----------------------------------------------------------------------------
+  - level: RequestResponse
+    resources:
+      - group: "networking.k8s.io"
+        resources: ["networkpolicies"]
+    namespaces: ["spark-system"]
+
+  # -----------------------------------------------------------------------------
+  # Default: log everything else at Metadata level
+  # -----------------------------------------------------------------------------
+  - level: Metadata
+    omitStages:
+      - RequestReceived
+
+---
+# =============================================================================
+# Fluentd DaemonSet for Log Collection
+# =============================================================================
+# Collects logs from all nodes and forwards to centralized logging
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: kube-system
+  labels:
+    app: fluentd
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+  labels:
+    app: fluentd
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fluentd
+roleRef:
+  kind: ClusterRole
+  name: fluentd
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: fluentd
+    namespace: kube-system
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: kube-system
+  labels:
+    app: fluentd
+    version: v1.16
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        version: v1.16
+    spec:
+      serviceAccount: fluentd
+      serviceAccountName: fluentd
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+
+      containers:
+        - name: fluentd
+          image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch8-1
+          env:
+            # Elasticsearch configuration
+            - name: FLUENT_ELASTICSEARCH_HOST
+              value: "elasticsearch.logging.svc.cluster.local"
+            - name: FLUENT_ELASTICSEARCH_PORT
+              value: "9200"
+            - name: FLUENT_ELASTICSEARCH_SCHEME
+              value: "https"
+            - name: FLUENT_ELASTICSEARCH_USER
+              value: "elastic"
+            - name: FLUENT_ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: password
+
+            # Kubernetes metadata
+            - name: FLUENT_KUBERNETES_METADATA_SKIP_LABELS
+              value: "false"
+            - name: FLUENT_KUBERNETES_METADATA_SKIP_CONTAINER_METADATA
+              value: "false"
+            - name: FLUENT_KUBERNETES_METADATA_SKIP_MASTER_URL
+              value: "false"
+            - name: FLUENT_KUBERNETES_METADATA_SKIP_NAMESPACE_METADATA
+              value: "false"
+
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 500m
+            requests:
+              memory: 256Mi
+              cpu: 100m
+
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+            - name: varlibdockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: fluentd-config
+              mountPath: /fluentd/etc/fluent.conf
+              subPath: fluent.conf
+
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
+        - name: varlibdockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: fluentd-config
+          configMap:
+            name: fluentd-config
+
+---
+# =============================================================================
+# Fluentd Configuration for Spark Logs
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: kube-system
+data:
+  fluent.conf: |
+    # =============================================================================
+    # Fluentd Configuration for Spark Audit Logging
+    # =============================================================================
+
+    # -----------------------------------------------------------------------------
+    # Input: Kubernetes container logs
+    # -----------------------------------------------------------------------------
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+      </parse>
+    </source>
+
+    # -----------------------------------------------------------------------------
+    # Filter: Add Kubernetes metadata
+    # -----------------------------------------------------------------------------
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL'] || 'https://' + ENV.fetch('KUBERNETES_SERVICE_HOST') + ':' + ENV.fetch('KUBERNETES_SERVICE_PORT') + '/api'}"
+      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
+      ca_file "#{ENV['KUBERNETES_CA_FILE']}"
+    </filter>
+
+    # -----------------------------------------------------------------------------
+    # Filter: Parse Spark application logs
+    # -----------------------------------------------------------------------------
+    <filter kubernetes.var.log.containers.**spark-system**.log>
+      @type parser
+      key_name log
+      reserve_data true
+
+      <parse>
+        @type regexp
+        expression /^(?<timestamp>\d{2}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<log_level>\w+) (?<component>[\w\.]+): (?<message>.*)$/
+        time_key timestamp
+        time_format %y/%m/%d %H:%M:%S
+      </parse>
+    </filter>
+
+    # -----------------------------------------------------------------------------
+    # Filter: Add compliance tags
+    # -----------------------------------------------------------------------------
+    <filter kubernetes.var.log.containers.**spark-system**.log>
+      @type record_transformer
+      enable_ruby true
+
+      <record>
+        # Compliance metadata
+        compliance.pci_dss "true"
+        compliance.soc2 "true"
+        compliance.retention_days "2555"  # 7 years for compliance
+
+        # Cost allocation
+        cost_center "${record['kubernetes']['labels']['cost-center']}"
+        environment "${record['kubernetes']['labels']['environment']}"
+
+        # Security classification
+        security_zone "${record['kubernetes']['labels']['security-zone']}"
+
+        # Application metadata
+        app_name "${record['kubernetes']['labels']['app']}"
+        component "${record['kubernetes']['labels']['component']}"
+      </record>
+    </filter>
+
+    # -----------------------------------------------------------------------------
+    # Filter: Detect sensitive data (PII, credentials)
+    # -----------------------------------------------------------------------------
+    <filter kubernetes.var.log.containers.**spark-system**.log>
+      @type grep
+      <exclude>
+        key message
+        pattern /(password|secret|api[_-]?key|access[_-]?token|credit[_-]?card|ssn)/i
+      </exclude>
+    </filter>
+
+    # -----------------------------------------------------------------------------
+    # Output: Elasticsearch for long-term storage
+    # -----------------------------------------------------------------------------
+    <match kubernetes.var.log.containers.**spark-system**.log>
+      @type elasticsearch
+      @id out_es_spark_logs
+      @log_level info
+
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+      user "#{ENV['FLUENT_ELASTICSEARCH_USER']}"
+      password "#{ENV['FLUENT_ELASTICSEARCH_PASSWORD']}"
+
+      # Index configuration
+      logstash_format true
+      logstash_prefix spark-logs
+      logstash_dateformat %Y.%m.%d
+
+      # Index lifecycle management
+      index_name spark-logs
+
+      # Buffering
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/spark.buffer
+        flush_mode interval
+        retry_type exponential_backoff
+        flush_thread_count 2
+        flush_interval 5s
+        retry_forever false
+        retry_max_interval 30
+        chunk_limit_size 2M
+        queue_limit_length 8
+        overflow_action block
+      </buffer>
+    </match>
+
+    # -----------------------------------------------------------------------------
+    # Output: S3 for compliance archival
+    # -----------------------------------------------------------------------------
+    <match kubernetes.var.log.containers.**spark-system**.log>
+      @type s3
+      @id out_s3_compliance_archive
+
+      aws_key_id "#{ENV['AWS_ACCESS_KEY_ID']}"
+      aws_sec_key "#{ENV['AWS_SECRET_ACCESS_KEY']}"
+      s3_bucket "compliance-audit-logs-prod"
+      s3_region "us-east-1"
+
+      # Path format: compliance/spark/YYYY/MM/DD/
+      path "compliance/spark/%Y/%m/%d/"
+      s3_object_key_format "%{path}%{time_slice}_%{index}.%{file_extension}"
+
+      # Store as gzip compressed JSON
+      store_as gzip
+      <format>
+        @type json
+      </format>
+
+      # Time slicing
+      <buffer time>
+        @type file
+        path /var/log/fluentd-buffers/s3
+        timekey 3600  # 1 hour chunks
+        timekey_wait 10m
+        timekey_use_utc true
+      </buffer>
+    </match>
+
+---
+# =============================================================================
+# Prometheus ServiceMonitor for Spark Metrics
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-metrics
+  namespace: spark-system
+  labels:
+    app: spark
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: spark
+      component: driver
+
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics/prometheus
+
+      # Relabeling for better organization
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: app
+        - sourceLabels: [__meta_kubernetes_pod_label_component]
+          targetLabel: component
+        - sourceLabels: [__meta_kubernetes_pod_label_cost_center]
+          targetLabel: cost_center
+        - sourceLabels: [__meta_kubernetes_pod_label_environment]
+          targetLabel: environment
+
+---
+# =============================================================================
+# PrometheusRule for Spark Alerts
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: spark-alerts
+  namespace: spark-system
+  labels:
+    app: spark
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: spark-application
+      interval: 30s
+      rules:
+        # Alert on failed Spark applications
+        - alert: SparkApplicationFailed
+          expr: spark_application_state{state="FAILED"} == 1
+          for: 1m
+          labels:
+            severity: critical
+            compliance: required
+          annotations:
+            summary: "Spark application {{ $labels.app_name }} failed"
+            description: "Spark application {{ $labels.app_name }} in namespace {{ $labels.namespace }} has failed. Check logs for details."
+
+        # Alert on high executor failure rate
+        - alert: HighExecutorFailureRate
+          expr: rate(spark_executor_failures_total[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High executor failure rate for {{ $labels.app_name }}"
+            description: "Executor failure rate is {{ $value | humanizePercentage }} for application {{ $labels.app_name }}"
+
+        # Alert on OOM kills
+        - alert: SparkOOMKilled
+          expr: increase(spark_executor_oom_kills_total[10m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Spark executor OOM killed in {{ $labels.app_name }}"
+            description: "One or more executors were OOM killed in application {{ $labels.app_name }}"
+
+    - name: spark-security
+      interval: 30s
+      rules:
+        # Alert on unauthorized secret access
+        - alert: UnauthorizedSecretAccess
+          expr: |
+            sum(rate(apiserver_audit_event_total{
+              objectRef_resource="secrets",
+              objectRef_namespace="spark-system",
+              responseStatus_code!="200"
+            }[5m])) > 0
+          for: 1m
+          labels:
+            severity: critical
+            compliance: required
+          annotations:
+            summary: "Unauthorized secret access attempt detected"
+            description: "Failed attempt to access secrets in spark-system namespace"
+
+        # Alert on network policy violations
+        - alert: NetworkPolicyViolation
+          expr: |
+            sum(rate(cilium_drop_count_total{
+              reason="Policy denied"
+            }[5m])) by (namespace) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High rate of network policy violations"
+            description: "Network policy is blocking {{ $value }} connections/sec in {{ $labels.namespace }}"
+
+---
+# =============================================================================
+# ConfigMap - Compliance Documentation
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compliance-documentation
+  namespace: spark-system
+data:
+  compliance-checklist.md: |
+    # Spark on Kubernetes Compliance Checklist
+
+    ## PCI-DSS Requirements
+
+    ### 1. Install and maintain firewall configuration
+    - [x] NetworkPolicy configured for namespace isolation
+    - [x] Egress rules limit external access
+    - [x] Default deny-all policy in place
+
+    ### 2. Do not use vendor-supplied defaults
+    - [x] Changed default passwords for all components
+    - [x] Removed default accounts
+    - [x] Disabled unnecessary services
+
+    ### 3. Protect stored cardholder data
+    - [x] Encryption at rest enabled (etcd)
+    - [x] Secrets encrypted with KMS
+    - [x] No cardholder data in logs
+
+    ### 4. Encrypt transmission of cardholder data
+    - [x] TLS 1.3 enabled for all communication
+    - [x] Strong cipher suites configured
+    - [x] Certificate validation enabled
+
+    ### 5. Protect all systems against malware
+    - [x] Container image scanning enabled
+    - [x] Runtime security monitoring (Falco)
+    - [x] Regular security updates
+
+    ### 6. Develop and maintain secure systems
+    - [x] Security patches applied monthly
+    - [x] Vulnerability scanning automated
+    - [x] Change control process documented
+
+    ### 7. Restrict access by business need-to-know
+    - [x] RBAC implemented with least privilege
+    - [x] ServiceAccounts for each component
+    - [x] Access reviews quarterly
+
+    ### 8. Identify and authenticate access
+    - [x] Unique IDs for all users
+    - [x] MFA enabled for cluster access
+    - [x] Session timeout configured
+
+    ### 9. Restrict physical access
+    - [x] Cloud provider physical controls
+    - [x] Documented in vendor compliance reports
+
+    ### 10. Track and monitor all access
+    - [x] Audit logging enabled
+    - [x] Logs retained for 7 years
+    - [x] Log integrity protection
+
+    ### 11. Regularly test security systems
+    - [x] Quarterly vulnerability scans
+    - [x] Annual penetration testing
+    - [x] Security monitoring 24/7
+
+    ### 12. Maintain information security policy
+    - [x] Security policy documented
+    - [x] Annual review process
+    - [x] Employee training program
+
+    ## SOC2 Trust Service Criteria
+
+    ### Security (CC6)
+    - [x] Logical and physical access controls
+    - [x] System operations monitoring
+    - [x] Change management procedures
+    - [x] Risk mitigation activities
+
+    ### Availability (A1)
+    - [x] System availability monitoring
+    - [x] Incident response procedures
+    - [x] Disaster recovery plan
+    - [x] Redundancy and failover
+
+    ### Confidentiality (C1)
+    - [x] Data classification policy
+    - [x] Encryption standards
+    - [x] Secure disposal procedures
+    - [x] Non-disclosure agreements
+
+  resource-tagging-standards.md: |
+    # Resource Tagging Standards for Compliance
+
+    ## Required Labels
+
+    All Kubernetes resources must include these labels:
+
+    ```yaml
+    labels:
+      # Application identification
+      app: spark
+      component: driver|executor|operator
+      version: "3.5.0"
+
+      # Ownership and responsibility
+      managed-by: platform-team
+      owner: data-engineering@company.com
+
+      # Environment classification
+      environment: production|staging|development
+
+      # Cost allocation
+      cost-center: data-engineering
+      project: analytics-pipeline
+
+      # Security classification
+      security-zone: restricted|internal|public
+      data-classification: confidential|internal|public
+
+      # Compliance requirements
+      compliance: required|not-required
+      retention-period: "7-years"
+    ```
+
+    ## Required Annotations
+
+    ```yaml
+    annotations:
+      # Documentation
+      description: "Brief description of the resource"
+      documentation: "https://wiki.company.com/spark-setup"
+
+      # Change management
+      created-by: "user@company.com"
+      created-date: "2023-01-01T00:00:00Z"
+      last-modified-by: "user@company.com"
+      last-modified-date: "2023-06-01T00:00:00Z"
+
+      # Security
+      encryption-required: "true"
+      backup-required: "true"
+
+      # Monitoring
+      alert-contacts: "oncall@company.com"
+      sla-tier: "gold|silver|bronze"
+    ```
+
+  audit-retention-policy.md: |
+    # Audit Log Retention Policy
+
+    ## Retention Requirements
+
+    | Log Type | Retention Period | Storage Location | Compliance |
+    |----------|------------------|------------------|------------|
+    | Kubernetes Audit Logs | 7 years | S3 (Glacier) | PCI-DSS, SOC2 |
+    | Spark Application Logs | 1 year | Elasticsearch | Operational |
+    | Security Events | 7 years | S3 (Glacier) | PCI-DSS, SOC2 |
+    | Access Logs | 7 years | S3 (Glacier) | PCI-DSS, SOC2 |
+    | Metric Data | 90 days | Prometheus | Operational |
+
+    ## Log Format Requirements
+
+    - **Timestamp**: ISO 8601 format with timezone
+    - **User Identity**: Username or ServiceAccount
+    - **Action**: What was performed
+    - **Resource**: What was affected
+    - **Result**: Success or failure
+    - **Source IP**: Where the request came from
+    - **Additional Context**: Labels, annotations, etc.
+
+    ## Access Controls
+
+    - **Read Access**: Security team, compliance team, authorized auditors
+    - **Write Access**: Automated logging systems only
+    - **Delete Access**: No deletion allowed (append-only)
+    - **Retention Enforcement**: Automated lifecycle policies
+
+    ## Review Schedule
+
+    - **Daily**: Automated anomaly detection
+    - **Weekly**: Security team review
+    - **Monthly**: Compliance team review
+    - **Quarterly**: Management review
+    - **Annually**: External audit

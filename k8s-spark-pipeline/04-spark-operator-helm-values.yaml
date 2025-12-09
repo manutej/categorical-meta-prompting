@@ -1,0 +1,139 @@
+# Helm values for Spark Operator installation
+# Install command: helm install spark-operator spark-operator/spark-operator -f 04-spark-operator-helm-values.yaml -n spark-pipeline
+
+# Spark Operator image configuration
+image:
+  repository: ghcr.io/googlecloudplatform/spark-operator
+  tag: v1beta2-1.4.0-3.5.0
+  pullPolicy: IfNotPresent
+
+# Resource requests/limits for operator pod
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+# High availability configuration
+replicaCount: 2
+
+# Affinity rules to spread operator replicas across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: spark-operator
+        topologyKey: kubernetes.io/hostname
+
+# Service account configuration
+serviceAccounts:
+  spark:
+    create: true
+    name: spark
+  sparkoperator:
+    create: true
+    name: spark-operator
+
+# Webhook configuration for admission control
+webhook:
+  enable: true
+  port: 443
+  # Timeout for webhook responses
+  timeoutSeconds: 30
+  # Failure policy if webhook is unavailable
+  failurePolicy: Fail
+  # Namespaces to watch (empty = all namespaces)
+  namespaceSelector: ""
+
+# Leader election for HA
+leaderElection:
+  lockName: "spark-operator-lock"
+  lockNamespace: "spark-pipeline"
+
+# Metrics and monitoring
+metrics:
+  enable: true
+  port: 10254
+  portName: metrics
+  # Prometheus scraping annotations
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10254"
+    prometheus.io/path: "/metrics"
+
+# Spark job namespace management
+sparkJobNamespaces:
+  - spark-pipeline
+
+# Controller settings
+controllerThreads: 10
+resyncInterval: 30
+
+# Batch scheduler integration (e.g., Volcano, YuniKorn)
+batchScheduler:
+  enable: false
+
+# Resource cleanup
+sparkApplicationTTLSeconds: 86400  # 24 hours
+
+# Enable leader election for high availability
+enableLeaderElection: true
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Security context for containers
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+
+# Additional environment variables
+env:
+  - name: SPARK_OPERATOR_LOG_LEVEL
+    value: "info"
+
+# Node selector for operator pods
+nodeSelector:
+  workload-type: system
+
+# Tolerations for system nodes
+tolerations:
+  - key: "workload-type"
+    operator: "Equal"
+    value: "system"
+    effect: "NoSchedule"
+
+# Monitoring and alerting integration
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+    labels:
+      release: prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Logging configuration
+logging:
+  level: info
+  format: json
+
+# Webhook certificate management
+webhookCert:
+  # Use cert-manager for automatic certificate rotation
+  certManager:
+    enabled: true
+    issuerRef:
+      name: spark-operator-selfsigned-issuer
+      kind: Issuer

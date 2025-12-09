@@ -220,21 +220,140 @@ CHAIN_CHECKPOINT_3:
 
 ## Parallel Execution (|| operator)
 
-When `||` is detected, execute commands concurrently:
+When `||` is detected, execute commands concurrently using the **Task tool**:
 
 ```
 [/cmdA || /cmdB || /cmdC]
          ↓
     ┌────┼────┐
     ↓    ↓    ↓
-  cmdA cmdB cmdC  (parallel)
+  cmdA cmdB cmdC  (parallel via Task tool)
     ↓    ↓    ↓
     └────┼────┘
          ↓
     [aggregate results]
 ```
 
-**Aggregation Strategy**: Concatenate outputs with headers, or merge if structured.
+### CRITICAL: True Parallel Execution Protocol
+
+**The `||` operator MUST resolve to multiple Task tool invocations in a SINGLE message.**
+
+This is the mechanism that enables true concurrent execution in Claude Code.
+
+### Step 1: Parse Parallel Branches
+
+Identify each independent command in the `||` block:
+```
+Input: [/review-security || /review-performance || /review-maintainability]
+Branches:
+  - Branch 1: /review-security
+  - Branch 2: /review-performance
+  - Branch 3: /review-maintainability
+```
+
+### Step 2: Determine Subagent Types
+
+Map each branch to an appropriate subagent:
+
+| Command Pattern | Subagent Type |
+|-----------------|---------------|
+| `/review-*`, `/analyze-*` | `Explore` |
+| `/debug`, `/fix` | `debug-detective` |
+| `/research`, `/deep-*` | `deep-researcher` |
+| `/test-*` | `test-engineer` |
+| `/mercurio-*` | `mercurio-*` agents |
+| General commands | `general-purpose` |
+
+### Step 3: Generate Task Invocations
+
+**ACTION: For each parallel branch, invoke the Task tool:**
+
+```
+For branch in parallel_branches:
+  Task(
+    subagent_type: [mapped agent type],
+    prompt: "[branch command] with context: [shared context]",
+    description: "Parallel: [branch name]"
+  )
+```
+
+### Step 4: Execute ALL Task Calls in Single Message
+
+**CRITICAL**: All Task tool invocations MUST be in the same assistant message.
+This triggers true parallel execution. Do NOT wait between Task calls.
+
+Example execution:
+```
+<Task 1: subagent="Explore", prompt="/review-security code.py">
+<Task 2: subagent="Explore", prompt="/review-performance code.py">
+<Task 3: subagent="Explore", prompt="/review-maintainability code.py">
+```
+
+### Step 5: Aggregate Results
+
+Once all parallel branches complete:
+
+**Quality Aggregation** (categorical product rule):
+```
+aggregate_quality = mean(q_branch1, q_branch2, q_branch3, ...)
+```
+
+**Content Aggregation**:
+```markdown
+## Parallel Execution Results
+
+### Branch 1: /review-security
+[results from Task 1]
+
+### Branch 2: /review-performance
+[results from Task 2]
+
+### Branch 3: /review-maintainability
+[results from Task 3]
+
+---
+Aggregate Quality: [mean of branch qualities]
+```
+
+### Budget Splitting for Parallel Branches
+
+When `@budget:` is specified with parallel execution:
+
+```bash
+# Explicit per-branch budgets
+/chain @budget:[5000,5000,5000] [A || B || C] "task"
+
+# Auto-split total budget equally
+/chain @budget:15000 [A || B || C] "task"
+# Each branch gets: 15000 / 3 = 5000
+```
+
+### Parallel Checkpoint Format
+
+```yaml
+PARALLEL_CHECKPOINT:
+  operator: "||"
+  branches:
+    - name: branch_1
+      subagent: Explore
+      status: COMPLETE
+      quality: 0.85
+      tokens: 4800
+    - name: branch_2
+      subagent: Explore
+      status: COMPLETE
+      quality: 0.82
+      tokens: 5100
+    - name: branch_3
+      subagent: Explore
+      status: COMPLETE
+      quality: 0.88
+      tokens: 4600
+  aggregate:
+    quality: 0.85  # mean(0.85, 0.82, 0.88)
+    total_tokens: 14500
+    status: ALL_COMPLETE
+```
 
 ---
 

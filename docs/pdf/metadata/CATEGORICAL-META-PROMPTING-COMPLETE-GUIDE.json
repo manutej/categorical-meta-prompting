@@ -1,0 +1,24 @@
+{
+  "title": "Categorical Meta-Prompting: Complete Guide",
+  "name": "CATEGORICAL-META-PROMPTING-COMPLETE-GUIDE",
+  "file": "docs/CATEGORICAL-META-PROMPTING-COMPLETE-GUIDE.md",
+  "file_size": 56143,
+  "line_count": 2061,
+  "word_count": 6860,
+  "section_count": 249,
+  "code_blocks": 102,
+  "links": 5,
+  "images": 0,
+  "has_math": true,
+  "modified": "2025-12-08T17:49:37.525861",
+  "created": "2025-12-08T17:49:37.534258",
+  "summary": "# Categorical Meta-Prompting: Complete Guide  **Version**: 2.1 **Status**: Production Ready **Date**: 2025-12-08 **Foundation**: Category Theory (F, M, W, [0,1]-Enriched)  ---  ## Table of Contents  1",
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pdf_files": {
+    "light": "light/CATEGORICAL-META-PROMPTING-COMPLETE-GUIDE-light.pdf",
+    "dark": "dark/CATEGORICAL-META-PROMPTING-COMPLETE-GUIDE-dark.pdf"
+  }
+}

@@ -1,0 +1,314 @@
+---
+# SparkApplication CRD for self-healing data pipeline
+# Implements streaming job with checkpointing, auto-recovery, and monitoring
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-streaming-pipeline
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: streaming-processor
+    version: v1.0.0
+spec:
+  # Spark application type
+  type: Python  # Options: Java, Scala, Python, R
+  # Spark version
+  sparkVersion: "3.5.0"
+  # Execution mode
+  mode: cluster
+
+  # Docker image with Spark application
+  image: "your-registry/spark-pipeline:3.5.0-v1.0.0"
+  imagePullPolicy: IfNotPresent
+  # imagePullSecrets:
+  #   - name: registry-secret
+
+  # Main application file
+  mainApplicationFile: "local:///opt/spark/work-dir/streaming_pipeline.py"
+
+  # Application arguments
+  arguments:
+    - "--input-path=s3a://spark-pipeline-input/events/"
+    - "--output-path=s3a://spark-pipeline-output/processed/"
+    - "--checkpoint-path=/mnt/checkpoints/streaming-app"
+    - "--batch-interval=10"
+    - "--watermark-delay=1m"
+
+  # Hadoop configuration for S3 access
+  hadoopConf:
+    # S3A configuration
+    "fs.s3a.endpoint": "https://s3.us-west-2.amazonaws.com"
+    "fs.s3a.connection.ssl.enabled": "true"
+    "fs.s3a.path.style.access": "false"
+    "fs.s3a.fast.upload": "true"
+    "fs.s3a.multipart.size": "104857600"  # 100MB
+    "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    # Authentication
+    "fs.s3a.aws.credentials.provider": "com.amazonaws.auth.EnvironmentVariableCredentialsProvider"
+
+  # Spark configuration
+  sparkConf:
+    # Checkpoint and recovery
+    "spark.streaming.receiver.writeAheadLog.enable": "true"
+    "spark.streaming.backpressure.enabled": "true"
+    "spark.streaming.kafka.consumer.poll.ms": "512"
+
+    # Executor failure handling (SELF-HEALING)
+    "spark.task.maxFailures": "4"
+    "spark.executor.heartbeatInterval": "30s"
+    "spark.network.timeout": "300s"
+
+    # Dynamic allocation disabled for streaming
+    "spark.dynamicAllocation.enabled": "false"
+
+    # Shuffle service
+    "spark.shuffle.service.enabled": "true"
+
+    # Memory management
+    "spark.memory.fraction": "0.6"
+    "spark.memory.storageFraction": "0.5"
+
+    # Serialization
+    "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
+    "spark.kryoserializer.buffer.max": "512m"
+
+    # Event logging for monitoring
+    "spark.eventLog.enabled": "true"
+    "spark.eventLog.dir": "/mnt/spark-events"
+
+    # Metrics
+    "spark.metrics.namespace": "spark-streaming-pipeline"
+    "spark.sql.streaming.metricsEnabled": "true"
+
+    # UI configuration
+    "spark.ui.prometheus.enabled": "true"
+
+  # SELF-HEALING: Restart policy
+  restartPolicy:
+    type: OnFailure  # Options: Never, OnFailure, Always
+    onFailureRetries: 5
+    onFailureRetryInterval: 30  # seconds
+    onSubmissionFailureRetries: 3
+    onSubmissionFailureRetryInterval: 60
+
+  # Time to live for completed applications (cleanup)
+  timeToLiveSeconds: 86400  # 24 hours
+
+  # Driver configuration
+  driver:
+    # Driver pod name
+    podName: spark-streaming-pipeline-driver
+
+    # Resource allocation
+    cores: 2
+    coreLimit: "2000m"
+    memory: "4g"
+    memoryOverhead: "1g"
+
+    # Service account
+    serviceAccount: spark
+
+    # Labels for monitoring and selection
+    labels:
+      app: spark-pipeline
+      component: driver
+      version: v1.0.0
+
+    # Annotations for Prometheus scraping
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "4040"
+      prometheus.io/path: "/metrics/prometheus"
+
+    # Environment variables
+    env:
+      - name: AWS_REGION
+        value: "us-west-2"
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-s3-credentials
+            key: AWS_ACCESS_KEY_ID
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-s3-credentials
+            key: AWS_SECRET_ACCESS_KEY
+      - name: SPARK_METRICS_ENABLED
+        value: "true"
+
+    # Volume mounts
+    volumeMounts:
+      - name: checkpoint-storage
+        mountPath: /mnt/checkpoints
+      - name: event-logs
+        mountPath: /mnt/spark-events
+      - name: spark-defaults
+        mountPath: /opt/spark/conf/spark-defaults.conf
+        subPath: spark-defaults.conf
+
+    # SELF-HEALING: Liveness probe
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 4040
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+
+    # SELF-HEALING: Readiness probe
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 4040
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+    # Affinity rules (avoid scheduling on same node as other drivers)
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  component: driver
+              topologyKey: kubernetes.io/hostname
+
+    # Tolerations for spot instances
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+
+    # Node selector for driver pods
+    nodeSelector:
+      workload-type: compute
+      node-tier: on-demand  # Drivers on on-demand for stability
+
+    # Security context
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      runAsNonRoot: true
+
+  # Executor configuration
+  executor:
+    # Number of executor instances
+    instances: 5
+
+    # Resource allocation
+    cores: 2
+    coreLimit: "2000m"
+    memory: "8g"
+    memoryOverhead: "2g"
+
+    # Labels
+    labels:
+      app: spark-pipeline
+      component: executor
+      version: v1.0.0
+
+    # Annotations for monitoring
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+
+    # Environment variables
+    env:
+      - name: AWS_REGION
+        value: "us-west-2"
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: spark-s3-credentials
+            key: AWS_ACCESS_KEY_ID
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: spark-s3-credentials
+            key: AWS_SECRET_ACCESS_KEY
+
+    # Volume mounts
+    volumeMounts:
+      - name: checkpoint-storage
+        mountPath: /mnt/checkpoints
+      - name: event-logs
+        mountPath: /mnt/spark-events
+      - name: spark-defaults
+        mountPath: /opt/spark/conf/spark-defaults.conf
+        subPath: spark-defaults.conf
+
+    # Affinity rules (spread executors across nodes)
+    affinity:
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  component: executor
+              topologyKey: kubernetes.io/hostname
+
+    # Tolerations for spot instances (executors can run on spot)
+    tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+
+    # Node selector
+    nodeSelector:
+      workload-type: compute
+      # Executors can run on spot instances
+
+    # Security context
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      runAsNonRoot: true
+
+  # Volumes shared between driver and executors
+  volumes:
+    - name: checkpoint-storage
+      persistentVolumeClaim:
+        claimName: spark-checkpoint-pvc
+    - name: event-logs
+      persistentVolumeClaim:
+        claimName: spark-eventlog-pvc
+    - name: spark-defaults
+      configMap:
+        name: spark-defaults
+
+  # Monitoring configuration
+  monitoring:
+    # Enable Prometheus metrics
+    prometheus:
+      # Prometheus JMX exporter config
+      jmxExporterJar: "/opt/spark/jars/jmx_prometheus_javaagent-0.18.0.jar"
+      port: 8090
+      # Metrics configuration file
+      configFile: "/opt/spark/conf/metrics.properties"
+    # Enable metrics endpoint
+    exposeDriverMetrics: true
+    exposeExecutorMetrics: true
+    metricsProperties: |
+      *.sink.prometheusServlet.class=org.apache.spark.metrics.sink.PrometheusServlet
+      *.sink.prometheusServlet.path=/metrics/prometheus
+      master.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+      worker.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+      driver.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+      executor.source.jvm.class=org.apache.spark.metrics.source.JvmSource
+
+  # Batch scheduling (optional - for workload prioritization)
+  # batchScheduler: "volcano"
+  # batchSchedulerOptions:
+  #   priorityClassName: "high-priority"
+  #   queue: "spark-queue"

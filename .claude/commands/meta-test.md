@@ -1,6 +1,6 @@
 ---
 description: Comprehensive orchestrated testing workflow with multiple test types and coverage analysis
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [component-or-feature]
 ---
 

@@ -1,6 +1,6 @@
 ---
 description: Orchestrated deployment workflow - validate, stage, deploy, verify with rollback support
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [deployment-target]
 ---
 

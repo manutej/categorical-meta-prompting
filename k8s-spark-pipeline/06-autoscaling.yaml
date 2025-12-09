@@ -1,0 +1,260 @@
+---
+# HorizontalPodAutoscaler for Spark executors
+# SELF-HEALING: Automatically scales executors based on workload
+# Note: Requires metrics-server and custom metrics adapter
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: spark-executor-hpa
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: executor-autoscaler
+spec:
+  # Target the SparkApplication executor pods
+  scaleTargetRef:
+    apiVersion: sparkoperator.k8s.io/v1beta2
+    kind: SparkApplication
+    name: spark-streaming-pipeline
+
+  # Executor count bounds
+  minReplicas: 3
+  maxReplicas: 20
+
+  # Scaling behavior controls
+  behavior:
+    scaleUp:
+      # How to scale up
+      stabilizationWindowSeconds: 60  # Wait 60s before scaling up again
+      policies:
+        # Allow adding 50% more executors every 60 seconds
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        # Or add up to 5 executors at once
+        - type: Pods
+          value: 5
+          periodSeconds: 60
+      selectPolicy: Max  # Use the policy that scales faster
+
+    scaleDown:
+      # How to scale down
+      stabilizationWindowSeconds: 300  # Wait 5 minutes before scaling down
+      policies:
+        # Remove at most 10% of executors every 60 seconds
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        # Or remove at most 2 executors at once
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Min  # Use the policy that scales slower (conservative)
+
+  # Metrics to drive autoscaling
+  metrics:
+    # CPU-based scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70  # Target 70% CPU utilization
+
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80  # Target 80% memory utilization
+
+    # Custom metric: Spark streaming processing rate
+    # Requires Prometheus adapter and Spark metrics
+    - type: Pods
+      pods:
+        metric:
+          name: spark_streaming_processing_rate
+        target:
+          type: AverageValue
+          averageValue: "1000"  # Target 1000 records/sec per executor
+
+    # Custom metric: Kafka consumer lag (for Kafka streaming)
+    - type: External
+      external:
+        metric:
+          name: kafka_consumer_group_lag
+          selector:
+            matchLabels:
+              consumer_group: spark-streaming-pipeline
+        target:
+          type: AverageValue
+          averageValue: "10000"  # Target max 10k lag per partition
+
+---
+# VerticalPodAutoscaler (optional) for right-sizing executor resources
+# Requires VPA operator to be installed
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: spark-executor-vpa
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: executor-vpa
+spec:
+  targetRef:
+    apiVersion: sparkoperator.k8s.io/v1beta2
+    kind: SparkApplication
+    name: spark-streaming-pipeline
+
+  # Update policy
+  updatePolicy:
+    updateMode: "Auto"  # Options: Off, Initial, Recreate, Auto
+    # Don't evict driver pods
+    evictionRequirements:
+      - resources: ["cpu", "memory"]
+        changeRequirement: TargetHigherThanRequests
+
+  # Resource policy
+  resourcePolicy:
+    containerPolicies:
+      # Policy for executor containers
+      - containerName: executor
+        minAllowed:
+          cpu: 1
+          memory: 4Gi
+        maxAllowed:
+          cpu: 8
+          memory: 32Gi
+        controlledResources: ["cpu", "memory"]
+        mode: Auto
+
+      # Don't autoscale driver (keep stable)
+      - containerName: driver
+        mode: "Off"
+
+---
+# PodDisruptionBudget for executors
+# SELF-HEALING: Ensures minimum executors available during node maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: spark-executor-pdb
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: executor-pdb
+spec:
+  # Keep at least 2 executors running during disruptions
+  minAvailable: 2
+
+  selector:
+    matchLabels:
+      app: spark-pipeline
+      component: executor
+
+  # Optional: Unhealthy pod eviction policy
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+# PodDisruptionBudget for driver
+# SELF-HEALING: Prevent driver eviction during node maintenance
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: spark-driver-pdb
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: driver-pdb
+spec:
+  # Never evict the driver during voluntary disruptions
+  minAvailable: 1
+
+  selector:
+    matchLabels:
+      app: spark-pipeline
+      component: driver
+
+---
+# PriorityClass for Spark driver (high priority)
+# Ensures driver is not preempted by lower-priority workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: spark-driver-priority
+  labels:
+    app: spark-pipeline
+value: 1000000  # High priority (system-cluster-critical is 2000000000)
+globalDefault: false
+description: "Priority class for Spark driver pods - prevents preemption"
+
+---
+# PriorityClass for Spark executors (medium priority)
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: spark-executor-priority
+  labels:
+    app: spark-pipeline
+value: 100000  # Medium priority
+globalDefault: false
+description: "Priority class for Spark executor pods - can be preempted if needed"
+
+---
+# KEDA ScaledObject (alternative to HPA for event-driven autoscaling)
+# Requires KEDA operator: https://keda.sh/
+# Uncomment if using KEDA for advanced scaling patterns
+#
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: spark-executor-scaledobject
+#   namespace: spark-pipeline
+# spec:
+#   scaleTargetRef:
+#     apiVersion: sparkoperator.k8s.io/v1beta2
+#     kind: SparkApplication
+#     name: spark-streaming-pipeline
+#   pollingInterval: 30
+#   cooldownPeriod: 300
+#   minReplicaCount: 3
+#   maxReplicaCount: 20
+#   advanced:
+#     horizontalPodAutoscalerConfig:
+#       behavior:
+#         scaleUp:
+#           stabilizationWindowSeconds: 60
+#           policies:
+#           - type: Percent
+#             value: 50
+#             periodSeconds: 60
+#         scaleDown:
+#           stabilizationWindowSeconds: 300
+#           policies:
+#           - type: Percent
+#             value: 10
+#             periodSeconds: 60
+#   triggers:
+#     # Kafka lag trigger
+#     - type: kafka
+#       metadata:
+#         bootstrapServers: kafka-cluster:9092
+#         consumerGroup: spark-streaming-pipeline
+#         topic: events
+#         lagThreshold: "10000"
+#         offsetResetPolicy: latest
+#       authenticationRef:
+#         name: kafka-auth
+#
+#     # Prometheus metric trigger
+#     - type: prometheus
+#       metadata:
+#         serverAddress: http://prometheus:9090
+#         metricName: spark_streaming_processing_delay
+#         threshold: "5000"
+#         query: |
+#           avg(spark_streaming_lastReceivedBatch_processingDelay{
+#             job="spark-streaming-pipeline"
+#           })

@@ -1,0 +1,24 @@
+{
+  "title": "Recombinant Category Theory: Intelligence Through Crossing",
+  "name": "RECOMBINANT-CATEGORY-THEORY",
+  "file": "RECOMBINANT-CATEGORY-THEORY.md",
+  "file_size": 24072,
+  "line_count": 751,
+  "word_count": 3051,
+  "section_count": 63,
+  "code_blocks": 26,
+  "links": 0,
+  "images": 0,
+  "has_math": false,
+  "modified": "2025-12-08T04:03:21.100905",
+  "created": "2025-12-08T04:03:21.111205",
+  "summary": "# Recombinant Category Theory: Intelligence Through Crossing  **Framework Version**: 1.0 **Date**: 2025-12-08 **Foundation**: Natural Transformation Laws (Section 4, CATEGORICAL-LAWS-PROOFS.md)  ---",
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pdf_files": {
+    "light": "light/RECOMBINANT-CATEGORY-THEORY-light.pdf",
+    "dark": "dark/RECOMBINANT-CATEGORY-THEORY-dark.pdf"
+  }
+}

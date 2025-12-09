@@ -1,0 +1,592 @@
+---
+# =============================================================================
+# TLS/SSL Configuration for Spark Internal Communication
+# =============================================================================
+# Version: 1.0
+# Purpose: Production-ready TLS encryption for Spark cluster communication
+# Components: Driver-Executor, Spark UI, Block Transfer, Shuffle
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Certificate Authority (CA) Secret
+# -----------------------------------------------------------------------------
+# Generate CA certificate for signing Spark component certificates
+# Production: Use enterprise PKI or cert-manager
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-ca-cert
+  namespace: spark-system
+  labels:
+    app: spark
+    component: tls
+    cert-type: ca
+type: Opaque
+stringData:
+  # CA Certificate (PEM format)
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAKL0UG+mRKuFMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+    BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+    aWRnaXRzIFB0eSBMdGQwHhcNMjMwMTAxMDAwMDAwWhcNMzMwMTAxMDAwMDAwWjBF
+    MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+    ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+    CgKCAQEA...
+    -----END CERTIFICATE-----
+
+  # CA Private Key (PEM format) - HIGHLY SENSITIVE
+  ca.key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEpAIBAAKCAQEA...
+    -----END RSA PRIVATE KEY-----
+
+---
+# -----------------------------------------------------------------------------
+# Spark Driver TLS Certificate
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-driver-tls
+  namespace: spark-system
+  labels:
+    app: spark
+    component: tls
+    cert-type: driver
+type: kubernetes.io/tls
+stringData:
+  # Server certificate
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAKL0UG+mRKuFMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+    ...
+    -----END CERTIFICATE-----
+
+  # Private key
+  tls.key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEpAIBAAKCAQEA...
+    -----END RSA PRIVATE KEY-----
+
+  # CA certificate chain
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIDXTCCAkWgAwIBAgIJAKL0UG+mRKuFMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+    ...
+    -----END CERTIFICATE-----
+
+---
+# =============================================================================
+# cert-manager Integration (Recommended for Production)
+# =============================================================================
+# Install cert-manager: https://cert-manager.io/docs/installation/
+# Benefits: Automated certificate lifecycle, rotation, renewal
+# -----------------------------------------------------------------------------
+
+# Issuer - Internal CA for Spark certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: spark-ca-issuer
+  namespace: spark-system
+spec:
+  ca:
+    secretName: spark-ca-cert
+
+---
+# Certificate - Spark Driver TLS (managed by cert-manager)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: spark-driver-cert
+  namespace: spark-system
+spec:
+  secretName: spark-driver-tls-auto
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days before expiration
+
+  subject:
+    organizations:
+      - "Data Engineering Team"
+
+  commonName: "spark-driver.spark-system.svc.cluster.local"
+
+  dnsNames:
+    - "spark-driver"
+    - "spark-driver.spark-system"
+    - "spark-driver.spark-system.svc"
+    - "spark-driver.spark-system.svc.cluster.local"
+    - "*.spark-driver.spark-system.svc.cluster.local"
+
+  issuerRef:
+    name: spark-ca-issuer
+    kind: Issuer
+
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+
+---
+# Certificate - Spark Executor TLS (managed by cert-manager)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: spark-executor-cert
+  namespace: spark-system
+spec:
+  secretName: spark-executor-tls-auto
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days
+
+  subject:
+    organizations:
+      - "Data Engineering Team"
+
+  commonName: "spark-executor.spark-system.svc.cluster.local"
+
+  dnsNames:
+    - "spark-executor"
+    - "spark-executor.spark-system"
+    - "spark-executor.spark-system.svc"
+    - "spark-executor.spark-system.svc.cluster.local"
+    - "*.spark-executor.spark-system.svc.cluster.local"
+
+  issuerRef:
+    name: spark-ca-issuer
+    kind: Issuer
+
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+
+---
+# =============================================================================
+# Spark TLS Configuration - ConfigMap
+# =============================================================================
+# Reference: https://spark.apache.org/docs/latest/security.html#ssl-configuration
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-tls-config
+  namespace: spark-system
+  labels:
+    app: spark
+    component: tls
+data:
+  # Spark security configuration
+  spark-tls.conf: |
+    # =============================================================================
+    # Spark TLS/SSL Configuration
+    # =============================================================================
+
+    # -----------------------------------------------------------------------------
+    # Enable SSL for all Spark components
+    # -----------------------------------------------------------------------------
+    spark.ssl.enabled=true
+
+    # -----------------------------------------------------------------------------
+    # RPC (Driver-Executor communication) SSL
+    # -----------------------------------------------------------------------------
+    spark.ssl.rpc.enabled=true
+
+    # Keystore configuration
+    spark.ssl.keyStore=/opt/spark/tls/keystore.jks
+    spark.ssl.keyStorePassword=${KEYSTORE_PASSWORD}
+    spark.ssl.keyPassword=${KEY_PASSWORD}
+
+    # Truststore configuration
+    spark.ssl.trustStore=/opt/spark/tls/truststore.jks
+    spark.ssl.trustStorePassword=${TRUSTSTORE_PASSWORD}
+
+    # Protocol and cipher suites
+    spark.ssl.protocol=TLSv1.3
+    spark.ssl.enabledAlgorithms=TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256
+
+    # -----------------------------------------------------------------------------
+    # Block Transfer Service SSL (Shuffle encryption)
+    # -----------------------------------------------------------------------------
+    spark.ssl.blockTransfer.enabled=true
+    spark.ssl.blockTransfer.keyStore=/opt/spark/tls/keystore.jks
+    spark.ssl.blockTransfer.keyStorePassword=${KEYSTORE_PASSWORD}
+    spark.ssl.blockTransfer.trustStore=/opt/spark/tls/truststore.jks
+    spark.ssl.blockTransfer.trustStorePassword=${TRUSTSTORE_PASSWORD}
+
+    # -----------------------------------------------------------------------------
+    # Spark UI SSL
+    # -----------------------------------------------------------------------------
+    spark.ssl.ui.enabled=true
+    spark.ssl.ui.keyStore=/opt/spark/tls/keystore.jks
+    spark.ssl.ui.keyStorePassword=${KEYSTORE_PASSWORD}
+    spark.ssl.ui.trustStore=/opt/spark/tls/truststore.jks
+    spark.ssl.ui.trustStorePassword=${TRUSTSTORE_PASSWORD}
+    spark.ssl.ui.port=4041  # HTTPS port for Spark UI
+
+    # -----------------------------------------------------------------------------
+    # History Server SSL
+    # -----------------------------------------------------------------------------
+    spark.ssl.historyServer.enabled=true
+    spark.ssl.historyServer.keyStore=/opt/spark/tls/keystore.jks
+    spark.ssl.historyServer.keyStorePassword=${KEYSTORE_PASSWORD}
+    spark.ssl.historyServer.trustStore=/opt/spark/tls/truststore.jks
+    spark.ssl.historyServer.trustStorePassword=${TRUSTSTORE_PASSWORD}
+
+    # -----------------------------------------------------------------------------
+    # Standalone Mode SSL (if using Spark Standalone)
+    # -----------------------------------------------------------------------------
+    spark.ssl.standalone.enabled=true
+
+    # -----------------------------------------------------------------------------
+    # Additional Security Settings
+    # -----------------------------------------------------------------------------
+    # Require client authentication (mutual TLS)
+    spark.ssl.needClientAuth=true
+
+    # Hostname verification
+    spark.ssl.hostNameVerification=true
+
+  # Java keytool commands for reference
+  keytool-commands.sh: |
+    #!/bin/bash
+    # =============================================================================
+    # Java Keystore/Truststore Generation Script
+    # =============================================================================
+
+    # Variables
+    KEYSTORE_PASSWORD="changeit"
+    TRUSTSTORE_PASSWORD="changeit"
+    VALIDITY_DAYS=365
+
+    # -----------------------------------------------------------------------------
+    # 1. Generate Private Key and Certificate
+    # -----------------------------------------------------------------------------
+    keytool -genkeypair \
+      -alias spark-key \
+      -keyalg RSA \
+      -keysize 2048 \
+      -dname "CN=spark.spark-system.svc.cluster.local,OU=Data Engineering,O=Company,L=City,ST=State,C=US" \
+      -validity ${VALIDITY_DAYS} \
+      -keystore /opt/spark/tls/keystore.jks \
+      -storepass ${KEYSTORE_PASSWORD} \
+      -keypass ${KEYSTORE_PASSWORD}
+
+    # -----------------------------------------------------------------------------
+    # 2. Export Certificate
+    # -----------------------------------------------------------------------------
+    keytool -exportcert \
+      -alias spark-key \
+      -keystore /opt/spark/tls/keystore.jks \
+      -storepass ${KEYSTORE_PASSWORD} \
+      -file /opt/spark/tls/spark-cert.cer
+
+    # -----------------------------------------------------------------------------
+    # 3. Create Truststore and Import Certificate
+    # -----------------------------------------------------------------------------
+    keytool -importcert \
+      -alias spark-ca \
+      -file /opt/spark/tls/spark-cert.cer \
+      -keystore /opt/spark/tls/truststore.jks \
+      -storepass ${TRUSTSTORE_PASSWORD} \
+      -noprompt
+
+    # -----------------------------------------------------------------------------
+    # 4. Convert PEM to JKS (if using cert-manager PEM certificates)
+    # -----------------------------------------------------------------------------
+    # Install openssl and keytool
+
+    # Convert certificate and key to PKCS12
+    openssl pkcs12 -export \
+      -in /opt/spark/tls/tls.crt \
+      -inkey /opt/spark/tls/tls.key \
+      -out /opt/spark/tls/spark.p12 \
+      -name spark-key \
+      -password pass:${KEYSTORE_PASSWORD}
+
+    # Convert PKCS12 to JKS
+    keytool -importkeystore \
+      -srckeystore /opt/spark/tls/spark.p12 \
+      -srcstoretype PKCS12 \
+      -srcstorepass ${KEYSTORE_PASSWORD} \
+      -destkeystore /opt/spark/tls/keystore.jks \
+      -deststoretype JKS \
+      -deststorepass ${KEYSTORE_PASSWORD} \
+      -noprompt
+
+    # Import CA certificate to truststore
+    keytool -importcert \
+      -alias spark-ca \
+      -file /opt/spark/tls/ca.crt \
+      -keystore /opt/spark/tls/truststore.jks \
+      -storepass ${TRUSTSTORE_PASSWORD} \
+      -noprompt
+
+    echo "Keystore and Truststore created successfully"
+
+---
+# =============================================================================
+# Init Container for TLS Setup
+# =============================================================================
+# Use this in SparkApplication to convert PEM to JKS
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-tls-init-script
+  namespace: spark-system
+data:
+  setup-tls.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    echo "Setting up TLS certificates for Spark..."
+
+    # Directories
+    TLS_DIR="/opt/spark/tls"
+    CERT_DIR="/etc/tls-certs"
+
+    mkdir -p ${TLS_DIR}
+
+    # Passwords from environment variables
+    KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-changeit}"
+    TRUSTSTORE_PASSWORD="${TRUSTSTORE_PASSWORD:-changeit}"
+
+    # -----------------------------------------------------------------------------
+    # Convert PEM certificates to JKS format
+    # -----------------------------------------------------------------------------
+
+    # 1. Convert to PKCS12
+    openssl pkcs12 -export \
+      -in ${CERT_DIR}/tls.crt \
+      -inkey ${CERT_DIR}/tls.key \
+      -out ${TLS_DIR}/spark.p12 \
+      -name spark-key \
+      -password pass:${KEYSTORE_PASSWORD}
+
+    # 2. Convert PKCS12 to JKS keystore
+    keytool -importkeystore \
+      -srckeystore ${TLS_DIR}/spark.p12 \
+      -srcstoretype PKCS12 \
+      -srcstorepass ${KEYSTORE_PASSWORD} \
+      -destkeystore ${TLS_DIR}/keystore.jks \
+      -deststoretype JKS \
+      -deststorepass ${KEYSTORE_PASSWORD} \
+      -noprompt
+
+    # 3. Import CA to truststore
+    keytool -importcert \
+      -alias spark-ca \
+      -file ${CERT_DIR}/ca.crt \
+      -keystore ${TLS_DIR}/truststore.jks \
+      -storepass ${TRUSTSTORE_PASSWORD} \
+      -noprompt
+
+    # 4. Set permissions
+    chmod 600 ${TLS_DIR}/*.jks
+
+    echo "TLS setup complete"
+    echo "Keystore: ${TLS_DIR}/keystore.jks"
+    echo "Truststore: ${TLS_DIR}/truststore.jks"
+
+---
+# =============================================================================
+# Example SparkApplication with TLS Enabled
+# =============================================================================
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-tls-example
+  namespace: spark-system
+spec:
+  type: Scala
+  mode: cluster
+  image: "spark:3.5.0"
+  imagePullPolicy: IfNotPresent
+
+  mainClass: org.apache.spark.examples.SparkPi
+  mainApplicationFile: "local:///opt/spark/examples/jars/spark-examples_2.12-3.5.0.jar"
+
+  sparkVersion: "3.5.0"
+
+  # -----------------------------------------------------------------------------
+  # Spark Configuration with TLS
+  # -----------------------------------------------------------------------------
+  sparkConf:
+    # Load TLS configuration from file
+    "spark.driver.extraJavaOptions": "-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties"
+    "spark.executor.extraJavaOptions": "-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties"
+
+    # SSL configuration
+    "spark.ssl.enabled": "true"
+    "spark.ssl.rpc.enabled": "true"
+    "spark.ssl.protocol": "TLSv1.3"
+
+    # Keystore/Truststore paths
+    "spark.ssl.keyStore": "/opt/spark/tls/keystore.jks"
+    "spark.ssl.trustStore": "/opt/spark/tls/truststore.jks"
+
+    # Block transfer SSL
+    "spark.ssl.blockTransfer.enabled": "true"
+
+    # UI SSL
+    "spark.ssl.ui.enabled": "true"
+    "spark.ssl.ui.port": "4041"
+
+  # -----------------------------------------------------------------------------
+  # Driver Configuration
+  # -----------------------------------------------------------------------------
+  driver:
+    cores: 1
+    memory: "2048m"
+    serviceAccount: spark-driver
+
+    # Init container to set up TLS
+    initContainers:
+      - name: tls-setup
+        image: eclipse-temurin:17-jre
+        command: ["/bin/bash", "/scripts/setup-tls.sh"]
+        env:
+          - name: KEYSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: spark-keystore-passwords
+                key: keystore-password
+          - name: TRUSTSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: spark-keystore-passwords
+                key: truststore-password
+        volumeMounts:
+          - name: tls-certs
+            mountPath: /etc/tls-certs
+            readOnly: true
+          - name: tls-setup-script
+            mountPath: /scripts
+            readOnly: true
+          - name: tls-output
+            mountPath: /opt/spark/tls
+
+    # Main container volume mounts
+    volumeMounts:
+      - name: tls-output
+        mountPath: /opt/spark/tls
+        readOnly: true
+      - name: tls-config
+        mountPath: /opt/spark/conf/spark-tls.conf
+        subPath: spark-tls.conf
+        readOnly: true
+
+    env:
+      - name: KEYSTORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: spark-keystore-passwords
+            key: keystore-password
+      - name: TRUSTSTORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: spark-keystore-passwords
+            key: truststore-password
+
+  # -----------------------------------------------------------------------------
+  # Executor Configuration
+  # -----------------------------------------------------------------------------
+  executor:
+    cores: 1
+    instances: 2
+    memory: "2048m"
+    serviceAccount: spark-executor
+
+    # Init container (same as driver)
+    initContainers:
+      - name: tls-setup
+        image: eclipse-temurin:17-jre
+        command: ["/bin/bash", "/scripts/setup-tls.sh"]
+        env:
+          - name: KEYSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: spark-keystore-passwords
+                key: keystore-password
+          - name: TRUSTSTORE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: spark-keystore-passwords
+                key: truststore-password
+        volumeMounts:
+          - name: tls-certs
+            mountPath: /etc/tls-certs
+            readOnly: true
+          - name: tls-setup-script
+            mountPath: /scripts
+            readOnly: true
+          - name: tls-output
+            mountPath: /opt/spark/tls
+
+    volumeMounts:
+      - name: tls-output
+        mountPath: /opt/spark/tls
+        readOnly: true
+      - name: tls-config
+        mountPath: /opt/spark/conf/spark-tls.conf
+        subPath: spark-tls.conf
+        readOnly: true
+
+    env:
+      - name: KEYSTORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: spark-keystore-passwords
+            key: keystore-password
+      - name: TRUSTSTORE_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: spark-keystore-passwords
+            key: truststore-password
+
+  # -----------------------------------------------------------------------------
+  # Volumes
+  # -----------------------------------------------------------------------------
+  volumes:
+    # TLS certificates (from cert-manager)
+    - name: tls-certs
+      secret:
+        secretName: spark-driver-tls-auto
+
+    # TLS setup script
+    - name: tls-setup-script
+      configMap:
+        name: spark-tls-init-script
+        defaultMode: 0755
+
+    # TLS configuration
+    - name: tls-config
+      configMap:
+        name: spark-tls-config
+
+    # EmptyDir for generated JKS files
+    - name: tls-output
+      emptyDir:
+        sizeLimit: 100Mi
+
+---
+# =============================================================================
+# Secret for Keystore/Truststore Passwords
+# =============================================================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-keystore-passwords
+  namespace: spark-system
+  labels:
+    app: spark
+    component: tls
+type: Opaque
+stringData:
+  keystore-password: "changeit"  # Change in production
+  truststore-password: "changeit"  # Change in production
+  key-password: "changeit"  # Change in production

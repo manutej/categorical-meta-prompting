@@ -1,6 +1,6 @@
 ---
 description: Multi-pass parallel code review with specialized reviewers for different concerns
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [file-or-changeset]
 ---
 
@@ -116,7 +116,30 @@ $ARGUMENTS
 
 ## STAGE 2: Parallel Specialized Reviews
 
-**ACTION: Run four review passes simultaneously**
+**ACTION: Run four review passes simultaneously using Task tool**
+
+### CRITICAL: True Parallel Execution Protocol
+
+When executing this stage, you MUST spawn parallel subagents using the Task tool.
+All Task invocations must be in a SINGLE message to achieve true parallel execution.
+
+**Execute the following Task tool calls in ONE message:**
+
+```
+Task(subagent_type="Explore", description="Review: Correctness",
+     prompt="Review this code for correctness: [files]. Check logic errors, edge cases, error handling, null safety, type correctness. Return findings with file:line locations and severity.")
+
+Task(subagent_type="Explore", description="Review: Security",
+     prompt="Review this code for security: [files]. Check OWASP top 10: injection, auth, data exposure, XSS, access control. Return findings with file:line locations and severity.")
+
+Task(subagent_type="Explore", description="Review: Performance",
+     prompt="Review this code for performance: [files]. Check time/space complexity, N+1 queries, resource leaks, blocking ops. Return findings with file:line locations and impact.")
+
+Task(subagent_type="Explore", description="Review: Maintainability",
+     prompt="Review this code for maintainability: [files]. Check readability, naming, function length, DRY, documentation. Return findings with file:line locations and suggestions.")
+```
+
+**After all 4 agents return, aggregate results below:**
 
 ### 2A. Correctness Review
 

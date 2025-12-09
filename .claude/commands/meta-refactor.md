@@ -1,6 +1,6 @@
 ---
 description: Orchestrated refactoring workflow - analyze, plan, refactor safely with verification
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [refactoring-goal]
 ---
 

@@ -1,0 +1,465 @@
+---
+# =============================================================================
+# Pod Security Standards and SecurityContext Configuration
+# =============================================================================
+# Version: 1.0
+# Purpose: Production-ready pod security for Spark workloads
+# Compliance: PCI-DSS, SOC2, CIS Kubernetes Benchmark
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Pod Security Standards - Namespace Label (Kubernetes 1.23+)
+# -----------------------------------------------------------------------------
+# Replaces PodSecurityPolicy (deprecated in 1.21, removed in 1.25)
+# Three levels: privileged, baseline, restricted
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark-system
+  labels:
+    # Enforce restricted pod security standard
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+
+    # Audit mode for monitoring violations
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+
+    # Warn mode for user feedback
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+
+    # Metadata
+    environment: production
+    compliance: required
+    security-zone: restricted
+
+---
+# =============================================================================
+# PodSecurityPolicy (for Kubernetes < 1.25)
+# =============================================================================
+# NOTE: Deprecated - use only if running Kubernetes < 1.23
+# Migrate to Pod Security Standards when upgrading
+# -----------------------------------------------------------------------------
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: spark-restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+  labels:
+    app: spark
+    security-level: restricted
+spec:
+  # Prevent privileged containers
+  privileged: false
+
+  # Prevent privilege escalation
+  allowPrivilegeEscalation: false
+
+  # Enforce non-root users
+  runAsUser:
+    rule: MustRunAsNonRoot
+
+  # Enforce non-root groups
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+
+  # Enforce read-only root filesystem
+  readOnlyRootFilesystem: true
+
+  # FSGroup configuration
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+
+  # Supplemental groups
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+
+  # Allowed volume types
+  volumes:
+    - configMap
+    - emptyDir
+    - persistentVolumeClaim
+    - secret
+    - projected
+    - downwardAPI
+
+  # Host namespace restrictions
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+
+  # SELinux configuration
+  seLinux:
+    rule: RunAsAny
+
+  # Required drop capabilities
+  requiredDropCapabilities:
+    - ALL
+
+---
+# =============================================================================
+# SecurityContext Template for Spark Driver Pod
+# =============================================================================
+# Use this as a template in SparkApplication CRD
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-driver-security-template
+  namespace: spark-system
+  labels:
+    app: spark
+    component: security-template
+data:
+  driver-security-context.yaml: |
+    # Pod-level security context
+    podSecurityContext:
+      # Run as non-root user
+      runAsNonRoot: true
+      runAsUser: 185  # Spark official UID
+      runAsGroup: 185
+      fsGroup: 185
+
+      # Supplemental groups for shared storage access
+      supplementalGroups:
+        - 1000  # Example: shared data group
+
+      # Seccomp profile for syscall filtering
+      seccompProfile:
+        type: RuntimeDefault
+
+      # Prevent privilege escalation
+      allowPrivilegeEscalation: false
+
+    # Container-level security context
+    containerSecurityContext:
+      # Capabilities - drop all, add only required
+      capabilities:
+        drop:
+          - ALL
+        add: []  # Add specific capabilities if needed (e.g., NET_BIND_SERVICE)
+
+      # Non-root enforcement
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+
+      # Read-only root filesystem
+      readOnlyRootFilesystem: true
+
+      # Prevent privilege escalation
+      allowPrivilegeEscalation: false
+
+      # Seccomp profile
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Volume mounts for writable directories
+    volumeMounts:
+      - name: spark-work
+        mountPath: /opt/spark/work-dir
+      - name: spark-tmp
+        mountPath: /tmp
+      - name: spark-logs
+        mountPath: /opt/spark/logs
+
+    # Volumes
+    volumes:
+      - name: spark-work
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: spark-tmp
+        emptyDir:
+          sizeLimit: 5Gi
+      - name: spark-logs
+        emptyDir:
+          sizeLimit: 5Gi
+
+---
+# =============================================================================
+# SecurityContext Template for Spark Executor Pod
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-executor-security-template
+  namespace: spark-system
+  labels:
+    app: spark
+    component: security-template
+data:
+  executor-security-context.yaml: |
+    # Pod-level security context
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      fsGroup: 185
+      seccompProfile:
+        type: RuntimeDefault
+      allowPrivilegeEscalation: false
+
+    # Container-level security context
+    containerSecurityContext:
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Volume mounts
+    volumeMounts:
+      - name: executor-work
+        mountPath: /opt/spark/work-dir
+      - name: executor-tmp
+        mountPath: /tmp
+      - name: executor-logs
+        mountPath: /opt/spark/logs
+
+    # Volumes
+    volumes:
+      - name: executor-work
+        emptyDir:
+          sizeLimit: 20Gi  # Executors may need more space
+      - name: executor-tmp
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: executor-logs
+        emptyDir:
+          sizeLimit: 5Gi
+
+---
+# =============================================================================
+# Example SparkApplication with Security Configuration
+# =============================================================================
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-pi-secure
+  namespace: spark-system
+  labels:
+    app: spark-example
+    version: "3.5.0"
+spec:
+  type: Scala
+  mode: cluster
+  image: "spark:3.5.0"
+  imagePullPolicy: IfNotPresent
+
+  mainClass: org.apache.spark.examples.SparkPi
+  mainApplicationFile: "local:///opt/spark/examples/jars/spark-examples_2.12-3.5.0.jar"
+
+  sparkVersion: "3.5.0"
+
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
+    onSubmissionFailureRetries: 5
+    onSubmissionFailureRetryInterval: 20
+
+  # -----------------------------------------------------------------------------
+  # Driver Configuration with Security
+  # -----------------------------------------------------------------------------
+  driver:
+    cores: 1
+    coreLimit: "1200m"
+    memory: "2048m"
+
+    # ServiceAccount with RBAC
+    serviceAccount: spark-driver
+
+    # Security Context - Pod Level
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      fsGroup: 185
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Security Context - Container Level
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Volume mounts
+    volumeMounts:
+      - name: spark-work
+        mountPath: /opt/spark/work-dir
+      - name: spark-tmp
+        mountPath: /tmp
+
+    # Labels for network policy and monitoring
+    labels:
+      app: spark-pi
+      component: driver
+      security-zone: restricted
+      cost-center: data-engineering
+
+    # Annotations
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "4040"
+      prometheus.io/path: "/metrics/prometheus"
+
+  # -----------------------------------------------------------------------------
+  # Executor Configuration with Security
+  # -----------------------------------------------------------------------------
+  executor:
+    cores: 1
+    instances: 2
+    memory: "2048m"
+
+    # ServiceAccount with RBAC
+    serviceAccount: spark-executor
+
+    # Security Context - Pod Level
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      fsGroup: 185
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Security Context - Container Level
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 185
+      runAsGroup: 185
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+
+    # Volume mounts
+    volumeMounts:
+      - name: executor-work
+        mountPath: /opt/spark/work-dir
+      - name: executor-tmp
+        mountPath: /tmp
+
+    # Labels
+    labels:
+      app: spark-pi
+      component: executor
+      security-zone: restricted
+      cost-center: data-engineering
+
+  # -----------------------------------------------------------------------------
+  # Volumes
+  # -----------------------------------------------------------------------------
+  volumes:
+    - name: spark-work
+      emptyDir:
+        sizeLimit: 10Gi
+    - name: spark-tmp
+      emptyDir:
+        sizeLimit: 5Gi
+    - name: executor-work
+      emptyDir:
+        sizeLimit: 20Gi
+    - name: executor-tmp
+      emptyDir:
+        sizeLimit: 10Gi
+
+---
+# =============================================================================
+# ResourceQuota for namespace-level resource constraints
+# =============================================================================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: spark-quota
+  namespace: spark-system
+spec:
+  hard:
+    # Compute resources
+    requests.cpu: "100"
+    requests.memory: "200Gi"
+    limits.cpu: "150"
+    limits.memory: "300Gi"
+
+    # Storage resources
+    requests.storage: "500Gi"
+    persistentvolumeclaims: "10"
+
+    # Object counts
+    pods: "100"
+    services: "20"
+    configmaps: "50"
+    secrets: "30"
+
+---
+# =============================================================================
+# LimitRange for default resource constraints
+# =============================================================================
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: spark-limits
+  namespace: spark-system
+spec:
+  limits:
+    # Container limits
+    - type: Container
+      default:
+        cpu: "2"
+        memory: "4Gi"
+      defaultRequest:
+        cpu: "500m"
+        memory: "1Gi"
+      max:
+        cpu: "8"
+        memory: "16Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+
+    # Pod limits
+    - type: Pod
+      max:
+        cpu: "16"
+        memory: "32Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+
+    # PVC limits
+    - type: PersistentVolumeClaim
+      max:
+        storage: "100Gi"
+      min:
+        storage: "1Gi"

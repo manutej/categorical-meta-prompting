@@ -1,0 +1,614 @@
+---
+# =============================================================================
+# Network Security Policies for Spark on Kubernetes
+# =============================================================================
+# Version: 1.0
+# Purpose: Production-ready network isolation and traffic control
+# Requirements: CNI with NetworkPolicy support (Calico, Cilium, Weave)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Default Deny All Traffic - Security Baseline
+# -----------------------------------------------------------------------------
+# CRITICAL: Apply this first to establish zero-trust baseline
+# Then add specific allow rules below
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: spark-system
+  labels:
+    app: spark
+    policy-type: baseline
+spec:
+  podSelector: {}  # Applies to all pods in namespace
+  policyTypes:
+    - Ingress
+    - Egress
+  # Empty ingress/egress means deny all
+
+---
+# =============================================================================
+# Allow DNS Resolution - Required for all pods
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: spark-system
+  labels:
+    app: spark
+    policy-type: infrastructure
+spec:
+  podSelector: {}  # All pods need DNS
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS queries to kube-dns/CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# =============================================================================
+# Spark Operator Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-operator-policy
+  namespace: spark-system
+  labels:
+    app: spark-operator
+    policy-type: operator
+spec:
+  podSelector:
+    matchLabels:
+      app: spark-operator
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules
+  ingress:
+    # Allow webhooks from Kubernetes API server
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              component: kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 8080  # Webhook port
+        - protocol: TCP
+          port: 8081  # Metrics port
+
+    # Allow Prometheus scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8081  # Metrics
+
+  # Egress rules
+  egress:
+    # Allow Kubernetes API access
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow DNS (covered by allow-dns policy)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow webhook to SparkApplications
+    - to:
+        - podSelector:
+            matchLabels:
+              spark-role: driver
+      ports:
+        - protocol: TCP
+          port: 7077  # Spark master port
+
+---
+# =============================================================================
+# Spark Driver Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-driver-policy
+  namespace: spark-system
+  labels:
+    app: spark
+    component: driver
+    policy-type: workload
+spec:
+  podSelector:
+    matchLabels:
+      spark-role: driver
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules
+  ingress:
+    # Allow executor pods to connect to driver
+    - from:
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+      ports:
+        - protocol: TCP
+          port: 7077   # Spark master
+        - protocol: TCP
+          port: 7078   # Spark master web UI
+        - protocol: TCP
+          port: 4040   # Spark application UI
+        - protocol: TCP
+          port: 40000  # Block manager
+          endPort: 40100
+
+    # Allow Spark operator to communicate with driver
+    - from:
+        - podSelector:
+            matchLabels:
+              app: spark-operator
+      ports:
+        - protocol: TCP
+          port: 7077
+
+    # Allow Prometheus to scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 4040   # Spark UI metrics endpoint
+
+    # Allow ingress controller for Spark UI access
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 4040
+
+  # Egress rules
+  egress:
+    # Allow communication with executors
+    - to:
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+      ports:
+        - protocol: TCP
+          port: 7078   # Executor web UI
+        - protocol: TCP
+          port: 40000  # Block manager
+          endPort: 40100
+
+    # Allow Kubernetes API access
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: kube-apiserver
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow S3 access (AWS)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS
+    - ports:
+        - protocol: TCP
+          port: 443
+      to:
+        - podSelector: {}
+
+    # Allow PostgreSQL database access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: databases
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+
+    # Allow Kafka access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kafka
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092   # Kafka plaintext
+        - protocol: TCP
+          port: 9093   # Kafka SSL
+
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# =============================================================================
+# Spark Executor Network Policy
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-executor-policy
+  namespace: spark-system
+  labels:
+    app: spark
+    component: executor
+    policy-type: workload
+spec:
+  podSelector:
+    matchLabels:
+      spark-role: executor
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Ingress rules
+  ingress:
+    # Allow driver to connect to executor
+    - from:
+        - podSelector:
+            matchLabels:
+              spark-role: driver
+      ports:
+        - protocol: TCP
+          port: 7078   # Executor web UI
+        - protocol: TCP
+          port: 40000  # Block manager
+          endPort: 40100
+
+    # Allow executor-to-executor shuffle communication
+    - from:
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+      ports:
+        - protocol: TCP
+          port: 7078   # Executor web UI
+        - protocol: TCP
+          port: 40000  # Block manager shuffle
+          endPort: 40100
+
+    # Allow Prometheus metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080   # Metrics endpoint
+
+  # Egress rules
+  egress:
+    # Allow communication with driver
+    - to:
+        - podSelector:
+            matchLabels:
+              spark-role: driver
+      ports:
+        - protocol: TCP
+          port: 7077   # Spark master
+        - protocol: TCP
+          port: 40000  # Block manager
+          endPort: 40100
+
+    # Allow executor-to-executor shuffle
+    - to:
+        - podSelector:
+            matchLabels:
+              spark-role: executor
+      ports:
+        - protocol: TCP
+          port: 7078
+        - protocol: TCP
+          port: 40000
+          endPort: 40100
+
+    # Allow S3 access for data reading/writing
+    - ports:
+        - protocol: TCP
+          port: 443  # HTTPS
+      to:
+        - podSelector: {}
+
+    # Allow PostgreSQL access (read replicas)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: databases
+        - podSelector:
+            matchLabels:
+              app: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+
+    # Allow Kafka consumer access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kafka
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+        - protocol: TCP
+          port: 9093
+
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+---
+# =============================================================================
+# Egress Policy for External Data Sources (S3, Cloud Services)
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-egress-external
+  namespace: spark-system
+  labels:
+    app: spark
+    policy-type: egress
+spec:
+  podSelector:
+    matchLabels:
+      app: spark  # Applies to all Spark pods
+
+  policyTypes:
+    - Egress
+
+  egress:
+    # Allow HTTPS to AWS services (S3, Secrets Manager)
+    - to:
+        - ipBlock:
+            cidr: 52.219.0.0/16  # AWS S3 IP range (us-east-1)
+        - ipBlock:
+            cidr: 3.5.0.0/16     # Additional AWS ranges
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow HTTPS to general internet (for package downloads, APIs)
+    # WARNING: Restrict this in high-security environments
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32  # Block AWS metadata service
+              - 10.0.0.0/8          # Block private networks
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+---
+# =============================================================================
+# Network Policy for TLS/SSL Internal Communication
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-tls-policy
+  namespace: spark-system
+  labels:
+    app: spark
+    policy-type: encryption
+  annotations:
+    description: "Enforce TLS for internal Spark communication"
+spec:
+  podSelector:
+    matchLabels:
+      app: spark
+      tls-enabled: "true"
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Only allow TLS-encrypted connections
+    - from:
+        - podSelector:
+            matchLabels:
+              app: spark
+      ports:
+        - protocol: TCP
+          port: 8443  # TLS-enabled Spark ports
+
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: spark
+      ports:
+        - protocol: TCP
+          port: 8443
+
+---
+# =============================================================================
+# ConfigMap - Network Policy Best Practices
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-policy-guide
+  namespace: spark-system
+data:
+  best-practices.md: |
+    # Network Policy Best Practices
+
+    ## 1. Default Deny All
+    - Start with default-deny-all policy
+    - Add specific allow rules incrementally
+    - Test each rule before production
+
+    ## 2. Principle of Least Privilege
+    - Grant minimal required network access
+    - Use specific port ranges instead of wide open
+    - Restrict by namespace and pod labels
+
+    ## 3. Egress Control
+    - Control outbound traffic explicitly
+    - Block access to cloud metadata services (169.254.169.254)
+    - Whitelist external IPs/domains where possible
+
+    ## 4. Monitoring and Auditing
+    - Monitor NetworkPolicy events
+    - Log denied connections for analysis
+    - Use tools like Cilium Hubble for observability
+
+    ## 5. Testing
+    - Test policies in non-production first
+    - Use kubectl exec to verify connectivity
+    - Monitor application logs for connection errors
+
+  troubleshooting.md: |
+    # Network Policy Troubleshooting
+
+    ## Common Issues
+
+    ### 1. Pods can't communicate
+    ```bash
+    # Check if NetworkPolicy is applied
+    kubectl get networkpolicy -n spark-system
+
+    # Verify pod labels match policy selectors
+    kubectl get pods --show-labels -n spark-system
+
+    # Test connectivity from pod
+    kubectl exec -it <pod-name> -n spark-system -- nc -zv <target-pod-ip> <port>
+    ```
+
+    ### 2. DNS resolution fails
+    ```bash
+    # Ensure allow-dns policy exists
+    kubectl get networkpolicy allow-dns -n spark-system
+
+    # Test DNS from pod
+    kubectl exec -it <pod-name> -n spark-system -- nslookup google.com
+    ```
+
+    ### 3. External services unreachable
+    ```bash
+    # Check egress rules
+    kubectl describe networkpolicy spark-egress-external -n spark-system
+
+    # Verify IP blocks are correct
+    # For AWS S3, get current IP ranges:
+    curl https://ip-ranges.amazonaws.com/ip-ranges.json | jq '.prefixes[] | select(.service=="S3") | select(.region=="us-east-1")'
+    ```
+
+  validation.md: |
+    # Network Policy Validation
+
+    ## Validation Script
+    ```bash
+    #!/bin/bash
+    # validate-network-policies.sh
+
+    NAMESPACE="spark-system"
+
+    echo "Validating Network Policies in ${NAMESPACE}..."
+
+    # 1. Check if default deny exists
+    if kubectl get networkpolicy default-deny-all -n ${NAMESPACE} &>/dev/null; then
+      echo "✓ Default deny policy exists"
+    else
+      echo "✗ WARNING: No default deny policy!"
+    fi
+
+    # 2. Check DNS access
+    TEST_POD=$(kubectl get pod -n ${NAMESPACE} -l spark-role=driver -o jsonpath='{.items[0].metadata.name}')
+    if kubectl exec ${TEST_POD} -n ${NAMESPACE} -- nslookup google.com &>/dev/null; then
+      echo "✓ DNS resolution working"
+    else
+      echo "✗ DNS resolution failed"
+    fi
+
+    # 3. Check driver-executor connectivity
+    # Add your specific connectivity tests here
+
+    echo "Validation complete"
+    ```

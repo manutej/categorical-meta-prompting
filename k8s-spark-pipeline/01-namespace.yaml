@@ -1,0 +1,59 @@
+---
+# Namespace for Spark data pipeline isolation
+# Provides resource quotas, network policies, and RBAC boundaries
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark-pipeline
+  labels:
+    name: spark-pipeline
+    environment: production
+    data-tier: processing
+---
+# Resource Quota to prevent resource exhaustion
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: spark-pipeline-quota
+  namespace: spark-pipeline
+spec:
+  hard:
+    # Limit total pods to prevent runaway scaling
+    pods: "100"
+    # Memory limits for the entire namespace
+    requests.memory: "200Gi"
+    limits.memory: "400Gi"
+    # CPU limits
+    requests.cpu: "100"
+    limits.cpu: "200"
+    # Storage limits for checkpoints
+    persistentvolumeclaims: "10"
+    requests.storage: "500Gi"
+---
+# LimitRange for default resource constraints on pods
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: spark-pipeline-limits
+  namespace: spark-pipeline
+spec:
+  limits:
+  # Container-level defaults
+  - type: Container
+    default:
+      memory: "4Gi"
+      cpu: "2"
+    defaultRequest:
+      memory: "2Gi"
+      cpu: "1"
+    max:
+      memory: "16Gi"
+      cpu: "8"
+    min:
+      memory: "512Mi"
+      cpu: "250m"
+  # Pod-level limits
+  - type: Pod
+    max:
+      memory: "32Gi"
+      cpu: "16"

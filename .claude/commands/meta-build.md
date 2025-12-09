@@ -1,6 +1,6 @@
 ---
 description: Full orchestrated build workflow - analyze, plan, implement, test, review in coordinated stages
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [feature-description]
 ---
 

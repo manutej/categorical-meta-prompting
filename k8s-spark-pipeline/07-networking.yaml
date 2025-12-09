@@ -1,0 +1,437 @@
+---
+# Headless Service for Spark driver
+# Enables direct pod-to-pod communication for executors
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-driver-headless
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: driver-service
+spec:
+  # Headless service (no ClusterIP)
+  clusterIP: None
+  # Select driver pods
+  selector:
+    app: spark-pipeline
+    component: driver
+  ports:
+    # Driver RPC port
+    - name: driver-rpc
+      port: 7078
+      protocol: TCP
+      targetPort: 7078
+    # Block manager port
+    - name: blockmanager
+      port: 7079
+      protocol: TCP
+      targetPort: 7079
+  # Session affinity for stable connections
+  sessionAffinity: ClientIP
+
+---
+# Service for Spark UI
+# Exposes driver UI for monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-ui
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: ui-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "4040"
+    prometheus.io/path: "/metrics/prometheus"
+spec:
+  type: ClusterIP
+  selector:
+    app: spark-pipeline
+    component: driver
+  ports:
+    # Spark UI port
+    - name: spark-ui
+      port: 4040
+      protocol: TCP
+      targetPort: 4040
+    # Metrics port
+    - name: metrics
+      port: 8090
+      protocol: TCP
+      targetPort: 8090
+
+---
+# Service for Spark History Server
+# Provides UI for completed applications
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-history-server
+  namespace: spark-pipeline
+  labels:
+    app: spark-history-server
+    component: history-server
+spec:
+  type: ClusterIP
+  selector:
+    app: spark-history-server
+  ports:
+    - name: http
+      port: 18080
+      protocol: TCP
+      targetPort: 18080
+
+---
+# Deployment for Spark History Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history-server
+  namespace: spark-pipeline
+  labels:
+    app: spark-history-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-history-server
+  template:
+    metadata:
+      labels:
+        app: spark-history-server
+    spec:
+      serviceAccountName: spark
+      containers:
+        - name: spark-history-server
+          image: apache/spark:3.5.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/spark/sbin/start-history-server.sh
+          env:
+            - name: SPARK_NO_DAEMONIZE
+              value: "true"
+            - name: SPARK_HISTORY_OPTS
+              value: >-
+                -Dspark.history.fs.logDirectory=/mnt/spark-events
+                -Dspark.history.ui.port=18080
+                -Dspark.history.retainedApplications=100
+                -Dspark.history.fs.cleaner.enabled=true
+                -Dspark.history.fs.cleaner.maxAge=7d
+          ports:
+            - name: http
+              containerPort: 18080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 1000m
+              memory: 4Gi
+          volumeMounts:
+            - name: event-logs
+              mountPath: /mnt/spark-events
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 18080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 18080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+      volumes:
+        - name: event-logs
+          persistentVolumeClaim:
+            claimName: spark-eventlog-pvc
+
+---
+# Ingress for Spark UI (external access)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spark-ui-ingress
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: ui-ingress
+  annotations:
+    # NGINX ingress controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Authentication (basic auth)
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: spark-ui-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Spark UI - Authentication Required"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    # Cert-manager for TLS
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - spark-ui.yourdomain.com
+      secretName: spark-ui-tls
+  rules:
+    - host: spark-ui.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spark-ui
+                port:
+                  number: 4040
+
+---
+# Ingress for Spark History Server
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spark-history-ingress
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: history-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: spark-ui-auth
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - spark-history.yourdomain.com
+      secretName: spark-history-tls
+  rules:
+    - host: spark-history.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: spark-history-server
+                port:
+                  number: 18080
+
+---
+# Secret for basic authentication (ingress)
+# Generate with: htpasswd -c auth username
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-ui-auth
+  namespace: spark-pipeline
+type: Opaque
+data:
+  # Example: admin:$apr1$abc123... (replace with actual htpasswd output)
+  auth: YWRtaW46JGFwcjEkYWJjMTIzLi4u
+
+---
+# NetworkPolicy: Allow driver to communicate with executors
+# SECURITY: Restricts network traffic to necessary communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-driver-netpol
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: driver-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: spark-pipeline
+      component: driver
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow executors to connect to driver
+    - from:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: executor
+      ports:
+        - protocol: TCP
+          port: 7078  # Driver RPC
+        - protocol: TCP
+          port: 7079  # Block manager
+
+    # Allow ingress controller to access UI
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 4040  # Spark UI
+
+    # Allow Prometheus to scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8090  # Metrics
+
+  egress:
+    # Allow driver to communicate with executors
+    - to:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: executor
+      ports:
+        - protocol: TCP
+          port: 7078
+        - protocol: TCP
+          port: 7079
+
+    # Allow access to Kubernetes API
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: apiserver
+      ports:
+        - protocol: TCP
+          port: 443
+
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow S3 access (external)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS to S3
+
+---
+# NetworkPolicy: Allow executors to communicate with driver
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-executor-netpol
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: executor-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: spark-pipeline
+      component: executor
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow driver to connect to executors
+    - from:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: driver
+      ports:
+        - protocol: TCP
+          port: 7078
+        - protocol: TCP
+          port: 7079
+
+    # Allow executor-to-executor communication (shuffle)
+    - from:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: executor
+      ports:
+        - protocol: TCP
+          port: 7337  # Shuffle service
+
+    # Allow Prometheus to scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080  # Executor metrics
+
+  egress:
+    # Allow executors to communicate with driver
+    - to:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: driver
+      ports:
+        - protocol: TCP
+          port: 7078
+        - protocol: TCP
+          port: 7079
+
+    # Allow executor-to-executor communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: executor
+      ports:
+        - protocol: TCP
+          port: 7337
+
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow S3 access (external)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443  # HTTPS to S3
+
+---
+# NetworkPolicy: Default deny all ingress
+# SECURITY: Default deny policy, only allow explicit rules above
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: spark-pipeline
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress

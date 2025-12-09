@@ -1,0 +1,122 @@
+---
+# ServiceAccount for Spark Operator
+# Grants operator permissions to manage SparkApplication resources
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-operator
+  namespace: spark-pipeline
+---
+# ServiceAccount for Spark Driver and Executors
+# Limited permissions for running Spark workloads
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark
+  namespace: spark-pipeline
+---
+# ClusterRole for Spark Operator
+# Cluster-wide permissions to manage Spark CRDs and pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: spark-operator-role
+rules:
+# Permissions to manage SparkApplication CRDs
+- apiGroups: ["sparkoperator.k8s.io"]
+  resources: ["sparkapplications", "sparkapplications/status", "scheduledsparkapplications"]
+  verbs: ["*"]
+# Permissions to manage pods (driver and executors)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Permissions to manage services (for Spark UI and communication)
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Permissions to manage configmaps (for Spark configuration)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Permissions to read secrets (for S3 credentials, etc.)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+# Permissions to manage events (for debugging)
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "update", "patch"]
+# Permissions to access node information
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+# Permissions to manage PVCs
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+---
+# ClusterRoleBinding for Spark Operator
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-operator-binding
+subjects:
+- kind: ServiceAccount
+  name: spark-operator
+  namespace: spark-pipeline
+roleRef:
+  kind: ClusterRole
+  name: spark-operator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role for Spark workloads (namespace-scoped)
+# Minimal permissions for driver/executor pods
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-role
+  namespace: spark-pipeline
+rules:
+# Permission to create executor pods
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# Permission to create services for driver
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+# Permission to read configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+# Permission to read PVCs
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+---
+# RoleBinding for Spark workloads
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-binding
+  namespace: spark-pipeline
+subjects:
+- kind: ServiceAccount
+  name: spark
+  namespace: spark-pipeline
+roleRef:
+  kind: Role
+  name: spark-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role for pod security (if using Pod Security Admission)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-psp-role
+  namespace: spark-pipeline
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["spark-restricted"]

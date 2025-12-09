@@ -1,0 +1,24 @@
+{
+  "title": "Categorical Meta-Prompting: Integration Report",
+  "name": "INTEGRATION-REPORT",
+  "file": "INTEGRATION-REPORT.md",
+  "file_size": 28937,
+  "line_count": 910,
+  "word_count": 3859,
+  "section_count": 75,
+  "code_blocks": 17,
+  "links": 0,
+  "images": 0,
+  "has_math": false,
+  "modified": "2025-12-08T14:15:27.517370",
+  "created": "2025-12-08T14:15:27.525733",
+  "summary": "# Categorical Meta-Prompting: Integration Report  **Date**: 2025-12-08 **Status**: Complete Research Validation & Framework Extension **Confidence**: 82% overall (+4% from Natural Transformation compl",
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "pdf_files": {
+    "light": "light/INTEGRATION-REPORT-light.pdf",
+    "dark": "dark/INTEGRATION-REPORT-dark.pdf"
+  }
+}

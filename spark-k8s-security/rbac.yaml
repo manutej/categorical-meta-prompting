@@ -1,0 +1,407 @@
+---
+# =============================================================================
+# RBAC Configuration for Spark on Kubernetes
+# =============================================================================
+# Version: 1.0
+# Purpose: Production-ready RBAC setup for Spark Operator and SparkApplications
+# Security Level: Production-Grade
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Namespace for Spark workloads
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spark-system
+  labels:
+    name: spark-system
+    environment: production
+    compliance: required
+    cost-center: data-engineering
+
+---
+# -----------------------------------------------------------------------------
+# ServiceAccount for Spark Operator
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-operator
+  namespace: spark-system
+  labels:
+    app: spark-operator
+    component: controller
+    managed-by: platform-team
+  annotations:
+    description: "ServiceAccount for Spark Operator controller"
+automountServiceAccountToken: true
+
+---
+# -----------------------------------------------------------------------------
+# ServiceAccount for Spark Driver Pods
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-driver
+  namespace: spark-system
+  labels:
+    app: spark
+    component: driver
+    managed-by: platform-team
+  annotations:
+    description: "ServiceAccount for Spark driver pods"
+    # AWS IAM Role for service account (IRSA)
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/spark-driver-role"
+automountServiceAccountToken: true
+
+---
+# -----------------------------------------------------------------------------
+# ServiceAccount for Spark Executor Pods
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spark-executor
+  namespace: spark-system
+  labels:
+    app: spark
+    component: executor
+    managed-by: platform-team
+  annotations:
+    description: "ServiceAccount for Spark executor pods"
+    # AWS IAM Role for service account (IRSA)
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/spark-executor-role"
+automountServiceAccountToken: false  # Executors inherit driver's credentials
+
+---
+# =============================================================================
+# ClusterRole for Spark Operator
+# =============================================================================
+# Permissions needed for operator to manage SparkApplications cluster-wide
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: spark-operator-role
+  labels:
+    app: spark-operator
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+  # -----------------------------------------------------------------------------
+  # SparkApplication CRD management
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - sparkoperator.k8s.io
+    resources:
+      - sparkapplications
+      - sparkapplications/status
+      - sparkapplications/finalizers
+      - scheduledsparkapplications
+      - scheduledsparkapplications/status
+      - scheduledsparkapplications/finalizers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # Pod management for Spark driver and executor pods
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # Service management for Spark UI and driver communication
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # ConfigMap management for Spark configuration
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # Event publishing for monitoring and debugging
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+      - update
+
+  # -----------------------------------------------------------------------------
+  # Ingress management for Spark UI exposure
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # Resource quota checks
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - resourcequotas
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+# =============================================================================
+# ClusterRoleBinding for Spark Operator
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spark-operator-rolebinding
+  labels:
+    app: spark-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: spark-operator-role
+subjects:
+  - kind: ServiceAccount
+    name: spark-operator
+    namespace: spark-system
+
+---
+# =============================================================================
+# Role for Spark Driver - Namespace-scoped permissions
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-driver-role
+  namespace: spark-system
+  labels:
+    app: spark
+    component: driver
+rules:
+  # -----------------------------------------------------------------------------
+  # Pod management - Driver needs to create/manage executor pods
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # Service management - Driver creates services for executor communication
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - services
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - watch
+
+  # -----------------------------------------------------------------------------
+  # ConfigMap access - Read Spark configuration
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+
+  # -----------------------------------------------------------------------------
+  # Secret access - Read credentials (limited)
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+    # Note: Use resource names to restrict specific secrets in production
+
+  # -----------------------------------------------------------------------------
+  # PersistentVolumeClaim management for data staging
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+
+---
+# =============================================================================
+# RoleBinding for Spark Driver
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-driver-rolebinding
+  namespace: spark-system
+  labels:
+    app: spark
+    component: driver
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: spark-driver-role
+subjects:
+  - kind: ServiceAccount
+    name: spark-driver
+    namespace: spark-system
+
+---
+# =============================================================================
+# Role for Spark Executor - Minimal permissions
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-executor-role
+  namespace: spark-system
+  labels:
+    app: spark
+    component: executor
+rules:
+  # -----------------------------------------------------------------------------
+  # Pod read access - Executors may need to discover other pods
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+
+  # -----------------------------------------------------------------------------
+  # ConfigMap read access - Read Spark configuration
+  # -----------------------------------------------------------------------------
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+
+---
+# =============================================================================
+# RoleBinding for Spark Executor
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-executor-rolebinding
+  namespace: spark-system
+  labels:
+    app: spark
+    component: executor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: spark-executor-role
+subjects:
+  - kind: ServiceAccount
+    name: spark-executor
+    namespace: spark-system
+
+---
+# =============================================================================
+# Additional Role - Secret Reader (Example for restricted secret access)
+# =============================================================================
+# Use this pattern to grant access to specific secrets only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-secret-reader
+  namespace: spark-system
+  labels:
+    app: spark
+    component: secrets
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - spark-s3-credentials
+      - spark-database-credentials
+      - spark-kafka-credentials
+    verbs:
+      - get
+
+---
+# =============================================================================
+# RoleBinding for Secret Reader
+# =============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-secret-reader-binding
+  namespace: spark-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: spark-secret-reader
+subjects:
+  - kind: ServiceAccount
+    name: spark-driver
+    namespace: spark-system

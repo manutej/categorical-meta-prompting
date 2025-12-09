@@ -1,0 +1,519 @@
+---
+# CronJob for checkpoint backup to S3
+# SELF-HEALING: Periodic backup of checkpoints for disaster recovery
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: checkpoint-backup
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: backup
+spec:
+  # Run every 6 hours
+  schedule: "0 */6 * * *"
+  # Keep last 3 successful jobs
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  # Prevent concurrent backups
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      # Retry on failure
+      backoffLimit: 3
+      # Cleanup completed pods after 1 hour
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: spark-pipeline
+            component: backup-job
+        spec:
+          serviceAccountName: spark
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: amazon/aws-cli:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_PATH="s3://spark-pipeline-backups/checkpoints/${TIMESTAMP}/"
+
+                  echo "Starting checkpoint backup to ${BACKUP_PATH}"
+
+                  # Sync checkpoints to S3 with metadata
+                  aws s3 sync /mnt/checkpoints "${BACKUP_PATH}" \
+                    --storage-class STANDARD_IA \
+                    --metadata "backup-timestamp=${TIMESTAMP}" \
+                    --exclude "*.tmp" \
+                    --exclude "*.swp"
+
+                  echo "Backup completed successfully"
+
+                  # Cleanup old backups (keep last 7 days)
+                  echo "Cleaning up old backups..."
+                  CUTOFF_DATE=$(date -d '7 days ago' +%Y%m%d)
+                  aws s3 ls s3://spark-pipeline-backups/checkpoints/ | \
+                    awk '{print $2}' | \
+                    grep -E '^[0-9]{8}' | \
+                    while read DIR; do
+                      DIR_DATE=$(echo $DIR | cut -d'-' -f1)
+                      if [ "$DIR_DATE" -lt "$CUTOFF_DATE" ]; then
+                        echo "Deleting old backup: ${DIR}"
+                        aws s3 rm --recursive "s3://spark-pipeline-backups/checkpoints/${DIR}"
+                      fi
+                    done
+              env:
+                - name: AWS_REGION
+                  value: "us-west-2"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: spark-s3-credentials
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: spark-s3-credentials
+                      key: AWS_SECRET_ACCESS_KEY
+              volumeMounts:
+                - name: checkpoint-storage
+                  mountPath: /mnt/checkpoints
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: checkpoint-storage
+              persistentVolumeClaim:
+                claimName: spark-checkpoint-pvc
+
+---
+# CronJob for event log archival
+# Moves old event logs to long-term storage
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: eventlog-archival
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: archival
+spec:
+  # Run daily at 1 AM
+  schedule: "0 1 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: spark-pipeline
+            component: archival-job
+        spec:
+          serviceAccountName: spark
+          restartPolicy: OnFailure
+          containers:
+            - name: archival
+              image: amazon/aws-cli:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  # Archive event logs older than 7 days
+                  CUTOFF_TIMESTAMP=$(date -d '7 days ago' +%s)
+
+                  find /mnt/spark-events -type f -name "*.inprogress" -o -name "app-*" | \
+                    while read FILE; do
+                      FILE_TIMESTAMP=$(stat -c %Y "$FILE")
+                      if [ "$FILE_TIMESTAMP" -lt "$CUTOFF_TIMESTAMP" ]; then
+                        RELATIVE_PATH=$(echo "$FILE" | sed 's|/mnt/spark-events/||')
+                        echo "Archiving: $RELATIVE_PATH"
+
+                        # Upload to S3 Glacier
+                        aws s3 cp "$FILE" \
+                          "s3://spark-pipeline-archives/eventlogs/${RELATIVE_PATH}" \
+                          --storage-class GLACIER
+
+                        # Delete local copy after successful upload
+                        rm "$FILE"
+                      fi
+                    done
+
+                  echo "Event log archival completed"
+              env:
+                - name: AWS_REGION
+                  value: "us-west-2"
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: spark-s3-credentials
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: spark-s3-credentials
+                      key: AWS_SECRET_ACCESS_KEY
+              volumeMounts:
+                - name: event-logs
+                  mountPath: /mnt/spark-events
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: event-logs
+              persistentVolumeClaim:
+                claimName: spark-eventlog-pvc
+
+---
+# Job for checkpoint restoration (run manually during disaster recovery)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: checkpoint-restore
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: restore
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400  # Keep for 24 hours after completion
+  template:
+    metadata:
+      labels:
+        app: spark-pipeline
+        component: restore-job
+    spec:
+      serviceAccountName: spark
+      restartPolicy: OnFailure
+      containers:
+        - name: restore
+          image: amazon/aws-cli:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              set -e
+
+              # Restore from specific backup (set via env var)
+              RESTORE_TIMESTAMP=${RESTORE_TIMESTAMP:-latest}
+
+              if [ "$RESTORE_TIMESTAMP" = "latest" ]; then
+                # Find latest backup
+                BACKUP_PATH=$(aws s3 ls s3://spark-pipeline-backups/checkpoints/ | \
+                  awk '{print $2}' | \
+                  sort -r | \
+                  head -n 1)
+                RESTORE_PATH="s3://spark-pipeline-backups/checkpoints/${BACKUP_PATH}"
+              else
+                RESTORE_PATH="s3://spark-pipeline-backups/checkpoints/${RESTORE_TIMESTAMP}/"
+              fi
+
+              echo "Restoring checkpoint from ${RESTORE_PATH}"
+
+              # Clear existing checkpoints
+              rm -rf /mnt/checkpoints/*
+
+              # Restore from S3
+              aws s3 sync "${RESTORE_PATH}" /mnt/checkpoints/
+
+              echo "Checkpoint restoration completed successfully"
+          env:
+            - name: AWS_REGION
+              value: "us-west-2"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: spark-s3-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: spark-s3-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            # Set this to specific backup timestamp, or leave as "latest"
+            - name: RESTORE_TIMESTAMP
+              value: "latest"
+          volumeMounts:
+            - name: checkpoint-storage
+              mountPath: /mnt/checkpoints
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+      volumes:
+        - name: checkpoint-storage
+          persistentVolumeClaim:
+            claimName: spark-checkpoint-pvc
+
+---
+# VolumeSnapshot for point-in-time recovery
+# Requires CSI driver with snapshot support
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: checkpoint-snapshot-manual
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: snapshot
+spec:
+  volumeSnapshotClassName: csi-snapclass
+  source:
+    persistentVolumeClaimName: spark-checkpoint-pvc
+
+---
+# VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: csi-snapclass
+  labels:
+    app: spark-pipeline
+driver: ebs.csi.aws.com  # Change to your CSI driver
+deletionPolicy: Retain
+parameters:
+  # Provider-specific parameters
+  type: gp3
+
+---
+# CronJob for automated volume snapshots
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: checkpoint-snapshot
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: snapshot-cron
+spec:
+  # Create snapshot every 12 hours
+  schedule: "0 */12 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          serviceAccountName: spark
+          restartPolicy: OnFailure
+          containers:
+            - name: create-snapshot
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  SNAPSHOT_NAME="checkpoint-snapshot-${TIMESTAMP}"
+
+                  echo "Creating volume snapshot: ${SNAPSHOT_NAME}"
+
+                  # Create VolumeSnapshot
+                  cat <<EOF | kubectl apply -f -
+                  apiVersion: snapshot.storage.k8s.io/v1
+                  kind: VolumeSnapshot
+                  metadata:
+                    name: ${SNAPSHOT_NAME}
+                    namespace: spark-pipeline
+                    labels:
+                      app: spark-pipeline
+                      component: snapshot
+                      timestamp: "${TIMESTAMP}"
+                  spec:
+                    volumeSnapshotClassName: csi-snapclass
+                    source:
+                      persistentVolumeClaimName: spark-checkpoint-pvc
+                  EOF
+
+                  echo "Snapshot created: ${SNAPSHOT_NAME}"
+
+                  # Cleanup old snapshots (keep last 7 days)
+                  echo "Cleaning up old snapshots..."
+                  CUTOFF_DATE=$(date -d '7 days ago' +%Y%m%d)
+                  kubectl get volumesnapshots -n spark-pipeline -o json | \
+                    jq -r '.items[] | select(.metadata.labels.timestamp != null) | .metadata.name + " " + .metadata.labels.timestamp' | \
+                    while read NAME TS; do
+                      SNAPSHOT_DATE=$(echo $TS | cut -d'-' -f1)
+                      if [ "$SNAPSHOT_DATE" -lt "$CUTOFF_DATE" ]; then
+                        echo "Deleting old snapshot: ${NAME}"
+                        kubectl delete volumesnapshot "$NAME" -n spark-pipeline
+                      fi
+                    done
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+
+---
+# Velero Backup Schedule (if using Velero for cluster backups)
+# Requires Velero installed in the cluster
+# https://velero.io/
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: spark-pipeline-backup
+  namespace: velero
+spec:
+  # Daily backup at 2 AM
+  schedule: "0 2 * * *"
+  template:
+    # Include spark-pipeline namespace
+    includedNamespaces:
+      - spark-pipeline
+    # Include PVCs
+    includedResources:
+      - '*'
+    # Snapshot PVCs
+    snapshotVolumes: true
+    # TTL for backups (30 days)
+    ttl: 720h0m0s
+    # Storage location
+    storageLocation: default
+    volumeSnapshotLocations:
+      - default
+    # Hooks for application-consistent backups
+    hooks:
+      resources:
+        - name: checkpoint-freeze
+          includedNamespaces:
+            - spark-pipeline
+          labelSelector:
+            matchLabels:
+              app: spark-pipeline
+              component: driver
+          pre:
+            - exec:
+                container: driver
+                command:
+                  - /bin/sh
+                  - -c
+                  - "touch /tmp/backup-in-progress"
+                timeout: 30s
+          post:
+            - exec:
+                container: driver
+                command:
+                  - /bin/sh
+                  - -c
+                  - "rm -f /tmp/backup-in-progress"
+                timeout: 30s
+
+---
+# ConfigMap for disaster recovery runbook
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-runbook
+  namespace: spark-pipeline
+data:
+  disaster-recovery.md: |
+    # Disaster Recovery Runbook - Spark Pipeline
+
+    ## Checkpoint Restoration
+
+    ### From S3 Backup
+    1. List available backups:
+       ```bash
+       aws s3 ls s3://spark-pipeline-backups/checkpoints/
+       ```
+
+    2. Restore specific backup:
+       ```bash
+       kubectl set env job/checkpoint-restore \
+         RESTORE_TIMESTAMP=20250101-120000 \
+         -n spark-pipeline
+       kubectl create job --from=job/checkpoint-restore checkpoint-restore-manual \
+         -n spark-pipeline
+       ```
+
+    3. Monitor restoration:
+       ```bash
+       kubectl logs -f job/checkpoint-restore-manual -n spark-pipeline
+       ```
+
+    ### From Volume Snapshot
+    1. List available snapshots:
+       ```bash
+       kubectl get volumesnapshots -n spark-pipeline
+       ```
+
+    2. Create PVC from snapshot:
+       ```yaml
+       apiVersion: v1
+       kind: PersistentVolumeClaim
+       metadata:
+         name: spark-checkpoint-pvc-restored
+       spec:
+         dataSource:
+           name: checkpoint-snapshot-20250101-120000
+           kind: VolumeSnapshot
+           apiGroup: snapshot.storage.k8s.io
+         accessModes:
+           - ReadWriteMany
+         resources:
+           requests:
+             storage: 100Gi
+       ```
+
+    3. Update SparkApplication to use restored PVC
+
+    ## Full Cluster Restore (Velero)
+
+    1. List backups:
+       ```bash
+       velero backup get
+       ```
+
+    2. Restore from backup:
+       ```bash
+       velero restore create --from-backup spark-pipeline-backup-20250101
+       ```
+
+    3. Monitor restoration:
+       ```bash
+       velero restore describe spark-pipeline-backup-20250101
+       ```
+
+    ## Failover to Secondary Region
+
+    1. Update S3 endpoints in ConfigMap to point to secondary region
+    2. Restore checkpoints from replicated S3 bucket
+    3. Update DNS/Ingress to point to secondary cluster
+    4. Start SparkApplication in secondary cluster
+
+    ## RTO/RPO Targets
+    - **RTO** (Recovery Time Objective): 15 minutes
+    - **RPO** (Recovery Point Objective): 6 hours (checkpoint backup frequency)

@@ -1,0 +1,352 @@
+---
+# PodSecurityPolicy for Spark workloads (deprecated in K8s 1.25+, use Pod Security Standards instead)
+# Defines security constraints for pods
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: spark-restricted
+  labels:
+    app: spark-pipeline
+spec:
+  # Require running as non-root user
+  runAsUser:
+    rule: MustRunAsNonRoot
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+
+  # Prevent privilege escalation
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+
+  # Volume types allowed
+  volumes:
+    - configMap
+    - emptyDir
+    - persistentVolumeClaim
+    - secret
+    - projected
+    - downwardAPI
+
+  # Host namespace restrictions
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts: []
+
+  # SELinux (if applicable)
+  seLinux:
+    rule: RunAsAny
+
+  # Read-only root filesystem (optional, may break some Spark features)
+  # readOnlyRootFilesystem: true
+
+---
+# Pod Security Standards label (K8s 1.23+)
+# Applied to namespace for pod security admission
+# Uncomment these labels in 01-namespace.yaml metadata
+#   pod-security.kubernetes.io/enforce: restricted
+#   pod-security.kubernetes.io/audit: restricted
+#   pod-security.kubernetes.io/warn: restricted
+
+---
+# Secret encryption configuration (cluster-level)
+# Encrypt secrets at rest using KMS
+# This is configured at the API server level, not as a K8s resource
+# Example kube-apiserver flag:
+# --encryption-provider-config=/etc/kubernetes/encryption-config.yaml
+#
+# encryption-config.yaml content:
+# apiVersion: apiserver.config.k8s.io/v1
+# kind: EncryptionConfiguration
+# resources:
+#   - resources:
+#       - secrets
+#     providers:
+#       - aescbc:
+#           keys:
+#             - name: key1
+#               secret: <base64-encoded-32-byte-key>
+#       - identity: {}
+
+---
+# NetworkPolicy: Egress to specific S3 endpoints only
+# SECURITY: Restrict outbound traffic to known S3 buckets
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spark-s3-egress
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: s3-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app: spark-pipeline
+  policyTypes:
+    - Egress
+  egress:
+    # Allow S3 access only to specific IP ranges (AWS S3 IPs)
+    # Update with your actual S3 endpoint IP ranges
+    - to:
+        - ipBlock:
+            cidr: 52.92.0.0/16  # Example: AWS S3 IP range
+        - ipBlock:
+            cidr: 54.231.0.0/16  # Example: AWS S3 IP range
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+# Secret for TLS certificates (Spark encryption)
+# Enables Spark's internal encryption (SSL/TLS)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-tls-certs
+  namespace: spark-pipeline
+type: kubernetes.io/tls
+data:
+  # Generate with:
+  # openssl req -x509 -newkey rsa:4096 -keyout tls.key -out tls.crt -days 365 -nodes
+  tls.crt: LS0tLS1CRUdJTi...  # Base64-encoded certificate
+  tls.key: LS0tLS1CRUdJTi...  # Base64-encoded private key
+
+---
+# ConfigMap for Spark security configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-security-config
+  namespace: spark-pipeline
+data:
+  spark-security.conf: |
+    # Authentication
+    spark.authenticate=true
+    spark.authenticate.secret=<random-secret-key>
+
+    # Encryption in transit (network)
+    spark.network.crypto.enabled=true
+    spark.network.crypto.keyLength=256
+    spark.network.crypto.keyFactoryAlgorithm=PBKDF2WithHmacSHA256
+
+    # Encryption at rest (I/O)
+    spark.io.encryption.enabled=true
+    spark.io.encryption.keySizeBits=256
+    spark.io.encryption.keygen.algorithm=HmacSHA256
+
+    # SSL/TLS for Spark UI and RPC
+    spark.ssl.enabled=true
+    spark.ssl.keyStore=/mnt/tls/keystore.jks
+    spark.ssl.keyStorePassword=changeit
+    spark.ssl.trustStore=/mnt/tls/truststore.jks
+    spark.ssl.trustStorePassword=changeit
+    spark.ssl.protocol=TLSv1.3
+
+    # SASL authentication for block transfer
+    spark.authenticate.enableSaslEncryption=true
+
+    # Redaction for sensitive data in logs
+    spark.redaction.regex=(?i)(password|secret|token|key)=([^ ]+)
+    spark.sql.redaction.string.regex=(?i)(password|secret|token|key)
+
+---
+# Role for image pulling (if using private registry)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-secret
+  namespace: spark-pipeline
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6eyJ1c2VybmFtZSI6InVzZXIiLCJwYXNzd29yZCI6InBhc3MiLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJhdXRoIjoiZFhObGNqcHdZWE56In19fQ==
+
+---
+# RBAC: Restrict service account permissions further (least privilege)
+# Additional Role for read-only ConfigMap access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spark-config-reader
+  namespace: spark-pipeline
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+    # Restrict to specific ConfigMaps only
+    resourceNames:
+      - spark-defaults
+      - spark-s3-config
+      - spark-security-config
+
+---
+# RoleBinding for config reader
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spark-config-reader-binding
+  namespace: spark-pipeline
+subjects:
+  - kind: ServiceAccount
+    name: spark
+    namespace: spark-pipeline
+roleRef:
+  kind: Role
+  name: spark-config-reader
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Secret scanning with Trivy (optional)
+# Run as CronJob to scan secrets for exposed credentials
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: trivy-secret-scan
+  namespace: spark-pipeline
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: spark
+          containers:
+            - name: trivy
+              image: aquasec/trivy:latest
+              args:
+                - "k8s"
+                - "--namespace=spark-pipeline"
+                - "--report=summary"
+                - "all"
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 1Gi
+                limits:
+                  cpu: 1000m
+                  memory: 2Gi
+          restartPolicy: OnFailure
+
+---
+# Admission webhook for policy enforcement (example with OPA Gatekeeper)
+# Requires OPA Gatekeeper installed
+# ConstraintTemplate: Require resource limits
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequireresourcelimits
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequireResourceLimits
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequireresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits
+          msg := sprintf("Container <%v> has no resource limits", [container.name])
+        }
+
+---
+# Constraint: Enforce resource limits on Spark pods
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequireResourceLimits
+metadata:
+  name: spark-require-limits
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces:
+      - spark-pipeline
+
+---
+# Secret management with External Secrets Operator (optional)
+# Syncs secrets from AWS Secrets Manager / HashiCorp Vault
+# Requires External Secrets Operator installed
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: aws-secrets-manager
+  namespace: spark-pipeline
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: us-west-2
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: spark
+
+---
+# ExternalSecret to sync S3 credentials from AWS Secrets Manager
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: spark-s3-credentials-external
+  namespace: spark-pipeline
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: spark-s3-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: AWS_ACCESS_KEY_ID
+      remoteRef:
+        key: spark/s3-credentials
+        property: access_key_id
+    - secretKey: AWS_SECRET_ACCESS_KEY
+      remoteRef:
+        key: spark/s3-credentials
+        property: secret_access_key
+
+---
+# Audit logging configuration (cluster-level)
+# Configured at API server level, not as K8s resource
+# Example kube-apiserver flags:
+# --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+# --audit-log-path=/var/log/kubernetes/audit.log
+# --audit-log-maxage=30
+# --audit-log-maxbackup=10
+# --audit-log-maxsize=100
+#
+# audit-policy.yaml content:
+# apiVersion: audit.k8s.io/v1
+# kind: Policy
+# rules:
+#   # Log secret access
+#   - level: Metadata
+#     resources:
+#       - group: ""
+#         resources: ["secrets"]
+#     namespaces: ["spark-pipeline"]
+#   # Log pod creation/deletion
+#   - level: RequestResponse
+#     resources:
+#       - group: ""
+#         resources: ["pods"]
+#     namespaces: ["spark-pipeline"]
+#     verbs: ["create", "delete"]

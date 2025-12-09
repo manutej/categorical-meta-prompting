@@ -1,0 +1,145 @@
+---
+# StorageClass for SSD-backed checkpoint storage
+# Provides fast I/O for Spark checkpointing and shuffle data
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: spark-checkpoint-ssd
+  labels:
+    storage-tier: performance
+provisioner: kubernetes.io/aws-ebs  # Change to your cloud provider
+parameters:
+  type: gp3  # AWS EBS gp3 (adjust for your provider)
+  iopsPerGB: "50"
+  throughput: "125"
+  encrypted: "true"
+  fsType: ext4
+# Retain volumes for debugging failed jobs
+reclaimPolicy: Retain
+# Allow volume expansion for growing checkpoints
+allowVolumeExpansion: true
+# Bind volumes immediately when claimed
+volumeBindingMode: Immediate
+---
+# PersistentVolumeClaim for Spark checkpoints
+# Shared across driver and executors for stateful streaming jobs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-checkpoint-pvc
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: checkpoint-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Multiple pods can read/write (requires NFS/EFS)
+  storageClassName: spark-checkpoint-ssd
+  resources:
+    requests:
+      storage: 100Gi
+---
+# PersistentVolumeClaim for Spark event logs (history server)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-eventlog-pvc
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: event-logs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: spark-checkpoint-ssd
+  resources:
+    requests:
+      storage: 50Gi
+---
+# ConfigMap for S3/MinIO configuration
+# Contains data lake connection details
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-s3-config
+  namespace: spark-pipeline
+data:
+  # S3-compatible endpoint (MinIO, AWS S3, etc.)
+  s3.endpoint: "https://s3.us-west-2.amazonaws.com"
+  s3.region: "us-west-2"
+  s3.bucket.input: "spark-pipeline-input"
+  s3.bucket.output: "spark-pipeline-output"
+  s3.bucket.checkpoint: "spark-pipeline-checkpoints"
+
+  # S3 path style access (needed for MinIO)
+  s3.path.style.access: "false"
+
+  # SSL/TLS configuration
+  s3.ssl.enabled: "true"
+
+  # Connection tuning
+  s3.connection.maximum: "100"
+  s3.connection.timeout: "60000"
+  s3.socket.timeout: "60000"
+---
+# Secret for S3 credentials
+# Store AWS access keys securely
+apiVersion: v1
+kind: Secret
+metadata:
+  name: spark-s3-credentials
+  namespace: spark-pipeline
+type: Opaque
+stringData:
+  # Replace with actual credentials (use sealed-secrets or external-secrets in production)
+  AWS_ACCESS_KEY_ID: "YOUR_ACCESS_KEY_ID"
+  AWS_SECRET_ACCESS_KEY: "YOUR_SECRET_ACCESS_KEY"
+---
+# ConfigMap for Spark configuration
+# Common Spark settings shared across applications
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-defaults
+  namespace: spark-pipeline
+data:
+  spark-defaults.conf: |
+    # Checkpoint configuration
+    spark.streaming.checkpoint.interval=10s
+    spark.checkpoint.compress=true
+
+    # Event log configuration (for history server)
+    spark.eventLog.enabled=true
+    spark.eventLog.dir=/mnt/spark-events
+    spark.eventLog.compress=true
+
+    # Dynamic allocation (disabled for streaming)
+    spark.dynamicAllocation.enabled=false
+
+    # Shuffle configuration
+    spark.shuffle.service.enabled=true
+    spark.shuffle.service.port=7337
+
+    # Memory configuration
+    spark.memory.fraction=0.6
+    spark.memory.storageFraction=0.5
+
+    # Serialization
+    spark.serializer=org.apache.spark.serializer.KryoSerializer
+    spark.kryoserializer.buffer.max=512m
+
+    # Network configuration
+    spark.network.timeout=300s
+    spark.executor.heartbeatInterval=30s
+
+    # S3 configuration
+    spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.aws.credentials.provider=com.amazonaws.auth.DefaultAWSCredentialsProviderChain
+    spark.hadoop.fs.s3a.fast.upload=true
+    spark.hadoop.fs.s3a.multipart.size=104857600
+    spark.hadoop.fs.s3a.committer.name=magic
+    spark.hadoop.fs.s3a.committer.magic.enabled=true
+
+    # Metrics configuration
+    spark.metrics.namespace=spark-pipeline
+    spark.metrics.conf=/opt/spark/conf/metrics.properties

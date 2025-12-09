@@ -1,0 +1,346 @@
+---
+# ServiceMonitor for Prometheus Operator
+# Automatically scrapes Spark metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-driver-metrics
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: monitoring
+    release: prometheus  # Match your Prometheus Operator release label
+spec:
+  selector:
+    matchLabels:
+      app: spark-pipeline
+      component: driver-service
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics/prometheus
+      scheme: http
+      # Relabeling to add job and instance labels
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_label_app]
+          targetLabel: app
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: version
+
+---
+# ServiceMonitor for Spark executors
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: spark-executor-metrics
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: monitoring
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: spark-pipeline
+      component: executor
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+
+---
+# PrometheusRule for Spark alerting
+# SELF-HEALING: Alerts for failures and performance issues
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: spark-alerts
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    component: alerting
+    release: prometheus
+spec:
+  groups:
+    - name: spark-pipeline-health
+      interval: 30s
+      rules:
+        # Alert: Driver pod is down
+        - alert: SparkDriverDown
+          expr: |
+            up{job="spark-driver-metrics"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: driver
+          annotations:
+            summary: "Spark driver pod is down"
+            description: "Spark driver {{ $labels.pod }} in namespace {{ $labels.namespace }} has been down for more than 2 minutes."
+
+        # Alert: Executor failure rate is high
+        - alert: HighExecutorFailureRate
+          expr: |
+            rate(spark_app_executor_failureCount[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            component: executor
+          annotations:
+            summary: "High executor failure rate detected"
+            description: "Executor failure rate is {{ $value | humanize }} failures/sec for {{ $labels.app_name }}."
+
+        # Alert: Streaming batch processing delay is high
+        - alert: HighStreamingDelay
+          expr: |
+            spark_streaming_lastReceivedBatch_processingDelay > 30000
+          for: 5m
+          labels:
+            severity: warning
+            component: streaming
+          annotations:
+            summary: "Spark streaming processing delay is high"
+            description: "Processing delay is {{ $value | humanize }}ms for {{ $labels.app_name }}, indicating backpressure."
+
+        # Alert: Task failure rate is high
+        - alert: HighTaskFailureRate
+          expr: |
+            rate(spark_app_task_failedCount[5m]) > 1
+          for: 5m
+          labels:
+            severity: warning
+            component: tasks
+          annotations:
+            summary: "High task failure rate detected"
+            description: "Task failure rate is {{ $value | humanize }} failures/sec."
+
+        # Alert: Executor memory pressure
+        - alert: ExecutorMemoryPressure
+          expr: |
+            (spark_executor_memory_usedMemory / spark_executor_memory_totalMemory) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            component: executor
+          annotations:
+            summary: "Executor memory usage is high"
+            description: "Executor {{ $labels.executor_id }} is using {{ $value | humanizePercentage }} of available memory."
+
+        # Alert: JVM heap pressure
+        - alert: JVMHeapPressure
+          expr: |
+            (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            component: jvm
+          annotations:
+            summary: "JVM heap usage is high"
+            description: "JVM heap usage is {{ $value | humanizePercentage }} for pod {{ $labels.pod }}."
+
+        # Alert: No executors available
+        - alert: NoExecutorsAvailable
+          expr: |
+            spark_app_executor_activeCount == 0
+          for: 3m
+          labels:
+            severity: critical
+            component: executor
+          annotations:
+            summary: "No active executors available"
+            description: "Spark application {{ $labels.app_name }} has no active executors."
+
+        # Alert: Checkpoint failure
+        - alert: CheckpointFailure
+          expr: |
+            increase(spark_streaming_checkpoint_lastCheckpointFailureCount[5m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: checkpoint
+          annotations:
+            summary: "Checkpoint write failure detected"
+            description: "Checkpoint write failed for {{ $labels.app_name }}. This may cause data loss on restart."
+
+        # Alert: High GC time
+        - alert: HighGCTime
+          expr: |
+            rate(jvm_gc_collection_seconds_sum[5m]) / rate(jvm_gc_collection_seconds_count[5m]) > 1
+          for: 5m
+          labels:
+            severity: warning
+            component: jvm
+          annotations:
+            summary: "High garbage collection time"
+            description: "GC time is {{ $value | humanize }}s per collection for {{ $labels.pod }}."
+
+        # Alert: Kafka consumer lag (if using Kafka)
+        - alert: HighKafkaConsumerLag
+          expr: |
+            kafka_consumer_group_lag{consumer_group="spark-streaming-pipeline"} > 100000
+          for: 10m
+          labels:
+            severity: warning
+            component: kafka
+          annotations:
+            summary: "Kafka consumer lag is high"
+            description: "Consumer lag is {{ $value | humanize }} messages for topic {{ $labels.topic }}."
+
+---
+# Grafana Dashboard ConfigMap
+# Pre-built Spark monitoring dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-dashboard
+  namespace: spark-pipeline
+  labels:
+    grafana_dashboard: "1"
+data:
+  spark-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Spark Streaming Pipeline",
+        "tags": ["spark", "streaming"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Active Executors",
+            "targets": [
+              {
+                "expr": "spark_app_executor_activeCount{app_name='spark-streaming-pipeline'}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Processing Delay",
+            "targets": [
+              {
+                "expr": "spark_streaming_lastReceivedBatch_processingDelay{app_name='spark-streaming-pipeline'}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Task Failure Rate",
+            "targets": [
+              {
+                "expr": "rate(spark_app_task_failedCount{app_name='spark-streaming-pipeline'}[5m])"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Executor Memory Usage",
+            "targets": [
+              {
+                "expr": "spark_executor_memory_usedMemory{app_name='spark-streaming-pipeline'} / spark_executor_memory_totalMemory{app_name='spark-streaming-pipeline'}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "JVM Heap Usage",
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{area='heap',namespace='spark-pipeline'} / jvm_memory_max_bytes{area='heap',namespace='spark-pipeline'}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "GC Time",
+            "targets": [
+              {
+                "expr": "rate(jvm_gc_collection_seconds_sum{namespace='spark-pipeline'}[5m])"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+
+---
+# PodMonitor for direct pod scraping (alternative to ServiceMonitor)
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: spark-pods
+  namespace: spark-pipeline
+  labels:
+    app: spark-pipeline
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: spark-pipeline
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics/prometheus
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_component]
+          targetLabel: component
+        - sourceLabels: [__meta_kubernetes_pod_label_version]
+          targetLabel: version
+
+---
+# ConfigMap for Prometheus recording rules
+# Pre-aggregated metrics for better dashboard performance
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-recording-rules
+  namespace: spark-pipeline
+data:
+  spark-rules.yaml: |
+    groups:
+      - name: spark-aggregations
+        interval: 30s
+        rules:
+          # Aggregate executor count by application
+          - record: spark:app:executor_count
+            expr: sum by (app_name, namespace) (spark_app_executor_activeCount)
+
+          # Average processing delay across all batches
+          - record: spark:streaming:avg_processing_delay
+            expr: avg by (app_name, namespace) (spark_streaming_lastReceivedBatch_processingDelay)
+
+          # Total task failure rate
+          - record: spark:app:task_failure_rate
+            expr: sum by (app_name, namespace) (rate(spark_app_task_failedCount[5m]))
+
+          # Average executor memory utilization
+          - record: spark:executor:memory_utilization
+            expr: |
+              avg by (app_name, namespace) (
+                spark_executor_memory_usedMemory / spark_executor_memory_totalMemory
+              )
+
+          # JVM heap utilization
+          - record: spark:jvm:heap_utilization
+            expr: |
+              sum by (pod, namespace) (
+                jvm_memory_used_bytes{area="heap"}
+              ) / sum by (pod, namespace) (
+                jvm_memory_max_bytes{area="heap"}
+              )
+
+          # GC overhead percentage
+          - record: spark:jvm:gc_overhead_percent
+            expr: |
+              100 * rate(jvm_gc_collection_seconds_sum[5m]) /
+              (rate(jvm_gc_collection_seconds_sum[5m]) + rate(process_cpu_seconds_total[5m]))

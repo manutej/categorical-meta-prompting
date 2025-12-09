@@ -1,6 +1,6 @@
 ---
 description: Full orchestrated bug fix workflow - debug, analyze root cause, fix, verify, review
-allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite
+allowed-tools: Read, Write, Edit, Bash(*), Grep, Glob, TodoWrite, Task
 argument-hint: [error-or-symptom]
 ---
 
