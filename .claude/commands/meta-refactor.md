@@ -104,7 +104,26 @@ $ARGUMENTS
 
 ## STAGE 1: Baseline Establishment
 
-**ACTION: Capture current state before any changes**
+**ACTION: Capture current state using parallel Task agents**
+
+### CRITICAL: True Parallel Execution Protocol
+
+Spawn parallel baseline agents. All Task invocations must be in a SINGLE message.
+
+**Execute these Task tool calls in ONE message:**
+
+```
+Task(subagent_type="test-engineer", description="Baseline: Run Tests",
+     prompt="Run existing test suite for [target]. Capture all results. Tests MUST pass before refactoring.")
+
+Task(subagent_type="Explore", description="Baseline: Analyze Behavior",
+     prompt="Analyze current behavior of [target]. Document public functions, return types, side effects.")
+
+Task(subagent_type="Explore", description="Baseline: Document API Surface",
+     prompt="Document API surface of [target]. List all public interfaces, signatures, contracts.")
+```
+
+**After agents return, aggregate baseline below:**
 
 ```
 1. Run existing tests:

@@ -162,7 +162,26 @@ $ARGUMENTS
 
 ## STAGE 3: Root Cause Analysis
 
-**ACTION: Analyze from three perspectives in parallel**
+**ACTION: Analyze from three perspectives using parallel Task agents**
+
+### CRITICAL: True Parallel Execution Protocol
+
+Spawn parallel analysis agents. All Task invocations must be in a SINGLE message.
+
+**Execute these Task tool calls in ONE message:**
+
+```
+Task(subagent_type="debug-detective", description="Analysis: Code Path",
+     prompt="Trace code path for [error]. Follow call chain to error location. Identify what goes wrong.")
+
+Task(subagent_type="debug-detective", description="Analysis: Data Flow",
+     prompt="Trace data flow for [error]. What data comes in, transforms, and where it becomes invalid.")
+
+Task(subagent_type="debug-detective", description="Analysis: State",
+     prompt="Analyze state for [error]. Compare expected vs actual state. Identify discrepancy.")
+```
+
+**After agents return, synthesize root cause below:**
 
 **Code Path Analysis:**
 ```

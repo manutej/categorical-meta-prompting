@@ -528,7 +528,7 @@ Dynamic template assembly (used by /build-prompt):
 
 When meta-commands are executed by agents:
 
-1. **Concurrency** - `@parallel` blocks spawn concurrent sub-agents
+1. **Concurrency** - `@parallel` blocks spawn concurrent sub-agents via **Task tool**
 2. **Coordination** - Quality gates synchronize agent progress
 3. **Context** - `${}` variables share context between agents
 4. **Skills** - `⚡` invocations access specialized capabilities
@@ -539,17 +539,97 @@ When meta-commands are executed by agents:
 │                     ORCHESTRATOR AGENT                       │
 │                                                              │
 │  Interprets @orchestration blocks                            │
-│  Spawns sub-agents for @parallel                             │
+│  Spawns sub-agents for @parallel via Task tool               │
 │  Enforces ◆ quality gates                                    │
 │  Routes to ⚡ skills when needed                             │
 │                                                              │
 ├──────────────────┬──────────────────┬───────────────────────┤
 │   SUB-AGENT 1    │   SUB-AGENT 2    │   SUB-AGENT 3         │
-│                  │                  │                        │
+│   (Task tool)    │   (Task tool)    │   (Task tool)         │
 │   → /review      │   → /test        │   → /analyze           │
 │                  │                  │                        │
 │   [running]      │   [running]      │   [completed]          │
 └──────────────────┴──────────────────┴───────────────────────┘
+```
+
+---
+
+## CRITICAL: True Parallel Execution Protocol
+
+**Discovery (2025-12-01)**: The `@parallel` and `||` operators achieve true concurrent execution
+through the **Task tool**. Multiple Task invocations in a SINGLE message execute in parallel.
+
+### Implementation Pattern
+
+When encountering `@parallel[...]` or `||` operator:
+
+```markdown
+### Step 1: Parse parallel branches
+Identify each independent item in the parallel block.
+
+### Step 2: Map to Task tool calls
+For each branch, create a Task invocation:
+- subagent_type: Map command to agent (see table below)
+- prompt: Include branch command + shared context
+- description: "Parallel: [branch name]"
+
+### Step 3: Execute ALL Task calls in ONE message
+**CRITICAL**: All Task invocations MUST be in the same assistant message.
+This triggers true parallel execution. Do NOT wait between calls.
+
+### Step 4: Aggregate results
+- Quality: mean(branch_qualities)
+- Content: Merge with headers
+- Status: ALL_COMPLETE when all return
+```
+
+### Command-to-Agent Mapping
+
+| Command Pattern | Subagent Type |
+|-----------------|---------------|
+| `/review-*`, `/analyze-*` | `Explore` |
+| `/debug`, `/fix` | `debug-detective` |
+| `/research`, `/deep-*` | `deep-researcher` |
+| `/test-*` | `test-engineer` |
+| `/design`, `/architect` | `api-architect` |
+| `/mercurio-*` | `mercurio-*` agents |
+| General | `general-purpose` |
+
+### Example: @parallel Block Execution
+
+**Orchestration spec:**
+```
+@parallel[
+  → Correctness review
+  → Security review
+  → Performance review
+]
+```
+
+**Resolves to (in ONE message):**
+```
+Task(subagent_type="Explore", description="Parallel: Correctness",
+     prompt="Review code for correctness: [context]")
+
+Task(subagent_type="Explore", description="Parallel: Security",
+     prompt="Review code for security: [context]")
+
+Task(subagent_type="Explore", description="Parallel: Performance",
+     prompt="Review code for performance: [context]")
+```
+
+### Quality Aggregation (Categorical Product)
+
+```yaml
+PARALLEL_CHECKPOINT:
+  operator: "@parallel" | "||"
+  branches:
+    - {name: branch_1, quality: 0.85, status: COMPLETE}
+    - {name: branch_2, quality: 0.82, status: COMPLETE}
+    - {name: branch_3, quality: 0.88, status: COMPLETE}
+  aggregate:
+    quality: 0.85  # mean(0.85, 0.82, 0.88)
+    status: ALL_COMPLETE
 ```
 
 ---
