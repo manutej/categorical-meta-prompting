@@ -124,7 +124,26 @@ $ARGUMENTS
 
 ## STAGE 1: Pre-Deployment Validation
 
-**ACTION: Validate everything in parallel before deployment**
+**ACTION: Validate everything using parallel Task agents**
+
+### CRITICAL: True Parallel Execution Protocol
+
+Spawn parallel validation agents. All Task invocations must be in a SINGLE message.
+
+**Execute these Task tool calls in ONE message:**
+
+```
+Task(subagent_type="test-engineer", description="Validate: Tests",
+     prompt="Run full test suite for [target]. Report pass/fail counts for unit, integration, property tests.")
+
+Task(subagent_type="Explore", description="Validate: Review",
+     prompt="Review [target] for deployment readiness. Check correctness, security, performance. Return scores.")
+
+Task(subagent_type="deployment-orchestrator", description="Validate: Prerequisites",
+     prompt="Check deployment prerequisites for [target]. Verify credentials, permissions, config, dependencies, environment.")
+```
+
+**After agents return, aggregate validation results below:**
 
 ### 1A. Run Tests (/meta-test)
 ```bash
