@@ -1,0 +1,120 @@
+---
+title: Categorical Meta-Prompting
+description: Transform AI prompts from guesswork to engineering using category theory.
+template: splash
+hero:
+  tagline: Transform AI prompts from guesswork to engineering
+  image:
+    file: ../../assets/hero-diagram.svg
+  actions:
+    - text: Get Started
+      link: /categorical-meta-prompting-oe/getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/HermeticOrmus/categorical-meta-prompting-oe
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## The Problem: AI Development is Alchemy
+
+Modern AI development feels like an alchemist's workshop. We mix mysterious incantations (prompts), hope for gold (good outputs), and when it works, we're not quite sure why.
+
+> *"The hottest new programming language is English."*
+> — Andrej Karpathy
+
+But English is imprecise. What if we could bring **mathematical rigor** to prompt engineering?
+
+---
+
+## Results That Speak
+
+| Benchmark | Result |
+|-----------|--------|
+| Game of 24 | **100%** accuracy (vs 4% zero-shot GPT-4) |
+| Quality Score | **0.91** average on first attempt |
+| Commands | **25+** composable operations |
+
+---
+
+## The Solution: Category Theory for Prompts
+
+Just like alchemy became chemistry through understanding molecular structure, we can make prompt engineering predictable through **categorical structure**.
+
+```
+Task → [F: Functor] → Prompt → [M: Monad] → Refined → [W: Comonad] → Output
+```
+
+**You don't need to understand the math.** The framework handles it. You just use simple commands:
+
+```bash
+# Transform task to optimized prompt
+/meta "implement rate limiter"
+
+# Iterate until quality threshold met
+/rmp @quality:0.85 "optimize algorithm"
+
+# Chain commands together
+/chain [/debug→/fix→/test] "TypeError in auth.py"
+```
+
+---
+
+## Why This Works
+
+> *"Like alchemy to chemistry, today's global experiments reveal the decisions engineers must make... This isn't about replacing engineers—it's about extending reach, accelerating feedback loops, and creating more than could ever be crafted by hand."*
+> — Vibe Engineering, Manning 2025
+
+<CardGrid stagger>
+  <Card title="Composable" icon="puzzle">
+    Commands chain together predictably. Quality degrades gracefully through composition.
+  </Card>
+  <Card title="Measurable" icon="approve-check">
+    Every output has a quality score from 0-1. No more guessing if a prompt is "good enough."
+  </Card>
+  <Card title="Iterative" icon="rocket">
+    Monadic refinement loops until your quality threshold is met. Set it and forget it.
+  </Card>
+  <Card title="Contextual" icon="document">
+    Comonads extract relevant context from history. Your prompts get smarter over time.
+  </Card>
+</CardGrid>
+
+---
+
+## Quick Example
+
+**Before** (traditional prompting):
+```
+Write a rate limiter in Python.
+```
+*Result: 3 attempts, missing edge cases, no tests, inconsistent style.*
+
+**After** (categorical meta-prompting):
+```bash
+/rmp @quality:0.9 @max_iterations:5 "implement rate limiter with sliding window, comprehensive tests, and error handling"
+```
+*Result: First attempt, quality 0.91, complete test suite, proper error handling.*
+
+---
+
+## Get Started in 5 Minutes
+
+<CardGrid>
+  <Card title="Introduction" icon="open-book">
+    Learn the core concepts without the math.
+
+    [Read the intro →](/categorical-meta-prompting-oe/getting-started/introduction/)
+  </Card>
+  <Card title="Quick Start" icon="rocket">
+    Run your first meta-prompt in 5 minutes.
+
+    [Get started →](/categorical-meta-prompting-oe/getting-started/quickstart/)
+  </Card>
+</CardGrid>
+
+---
+
+Originally created by [manutej](https://github.com/manutej). Fork maintained by [HermeticOrmus](https://github.com/HermeticOrmus).

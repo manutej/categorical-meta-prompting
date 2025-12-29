@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <!-- Background -->
+  <rect width="400" height="200" fill="#0f172a" rx="12"/>
+
+  <!-- Connection lines -->
+  <path d="M80 100 L140 100" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+  <path d="M180 100 L240 100" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+  <path d="M280 100 L340 100" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+
+  <!-- Task node -->
+  <rect x="30" y="75" width="50" height="50" rx="8" fill="#1f2937" stroke="#d97706" stroke-width="2"/>
+  <text x="55" y="105" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-size="12">Task</text>
+
+  <!-- Functor node -->
+  <rect x="140" y="70" width="40" height="60" rx="6" fill="#d97706"/>
+  <text x="160" y="105" text-anchor="middle" fill="#030712" font-family="monospace" font-size="14" font-weight="bold">F</text>
+
+  <!-- Prompt node -->
+  <rect x="190" y="75" width="50" height="50" rx="8" fill="#1f2937" stroke="#d97706" stroke-width="2"/>
+  <text x="215" y="105" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-size="10">Prompt</text>
+
+  <!-- Monad node -->
+  <rect x="250" y="70" width="40" height="60" rx="6" fill="#d97706"/>
+  <text x="270" y="105" text-anchor="middle" fill="#030712" font-family="monospace" font-size="14" font-weight="bold">M</text>
+
+  <!-- Output node -->
+  <rect x="300" y="75" width="70" height="50" rx="8" fill="#22c55e" stroke="#22c55e" stroke-width="2"/>
+  <text x="335" y="100" text-anchor="middle" fill="#030712" font-family="monospace" font-size="10">Quality</text>
+  <text x="335" y="115" text-anchor="middle" fill="#030712" font-family="monospace" font-size="12" font-weight="bold">0.91</text>
+
+  <!-- Labels -->
+  <text x="160" y="150" text-anchor="middle" fill="#6b7280" font-family="sans-serif" font-size="9">Transform</text>
+  <text x="270" y="150" text-anchor="middle" fill="#6b7280" font-family="sans-serif" font-size="9">Refine</text>
+
+  <!-- Title -->
+  <text x="200" y="30" text-anchor="middle" fill="#f3f4f6" font-family="sans-serif" font-size="14" font-weight="600">Categorical Pipeline</text>
+</svg>
